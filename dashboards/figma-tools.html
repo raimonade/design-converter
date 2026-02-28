@@ -1,809 +1,832 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DesignDev Workspace</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>DesignDev — Figma AI Workspace</title>
+  
+  <!-- Vercel Geist Fonts -->
+  <link rel="preconnect" href="https://assets.vercel.com">
+  <link href="https://assets.vercel.com/font/geist/font.css" rel="stylesheet">
+  
   <style>
+    /* Design Tokens */
     :root {
-      --bg-primary: #0a0a0f;
-      --bg-secondary: #12121a;
-      --bg-tertiary: #1a1a24;
-      --bg-card: #16161f;
-      --bg-card-hover: #1e1e2a;
-      --accent-cyan: #00d4ff;
-      --accent-cyan-dim: rgba(0, 212, 255, 0.15);
-      --accent-purple: #a855f7;
-      --accent-purple-dim: rgba(168, 85, 247, 0.15);
-      --accent-green: #22c55e;
-      --accent-green-dim: rgba(34, 197, 94, 0.15);
-      --accent-orange: #f97316;
-      --accent-orange-dim: rgba(249, 115, 22, 0.15);
-      --accent-pink: #ec4899;
-      --text-primary: #f4f4f5;
-      --text-secondary: #a1a1aa;
-      --text-muted: #71717a;
-      --border-subtle: rgba(255, 255, 255, 0.06);
-      --border-active: rgba(0, 212, 255, 0.3);
-      --glow-cyan: 0 0 40px rgba(0, 212, 255, 0.15);
-      --glow-purple: 0 0 40px rgba(168, 85, 247, 0.15);
+      --font-sans: 'Geist Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Geist Mono', 'SF Mono', Consolas, monospace;
+      
+      /* Emerald Theme (shadcn/ui) */
+      --color-bg: #0a0a0b;
+      --color-bg-secondary: #141416;
+      --color-bg-tertiary: #1c1c1f;
+      --color-bg-elevated: #232326;
+      --color-border: #27272a;
+      --color-border-subtle: #1f1f23;
+      
+      --color-text: #fafafa;
+      --color-text-secondary: #a1a1aa;
+      --color-text-muted: #71717a;
+      
+      --color-emerald-50: #ecfdf5;
+      --color-emerald-100: #d1fae5;
+      --color-emerald-200: #a7f3d0;
+      --color-emerald-300: #6ee7b7;
+      --color-emerald-400: #34d399;
+      --color-emerald-500: #10b981;
+      --color-emerald-600: #059669;
+      --color-emerald-700: #047857;
+      --color-emerald-800: #065f46;
+      --color-emerald-900: #064e3b;
+      
+      --color-primary: var(--color-emerald-500);
+      --color-primary-hover: var(--color-emerald-400);
+      --color-primary-subtle: rgba(16, 185, 129, 0.1);
+      
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 16px;
+      
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+      --shadow-glow: 0 0 40px rgba(16, 185, 129, 0.15);
+      
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+      --space-8: 32px;
+      --space-10: 40px;
+      --space-12: 48px;
+      
+      --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+      --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
     }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
+    
+    /* Reset */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    html {
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
     body {
-      font-family: 'Outfit', sans-serif;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      min-height: 100vh;
+      font-family: var(--font-sans);
+      background: var(--color-bg);
+      color: var(--color-text);
       line-height: 1.6;
-      background-image: 
-        radial-gradient(ellipse 80% 50% at 50% -20%, var(--accent-cyan-dim), transparent),
-        radial-gradient(ellipse 60% 40% at 80% 100%, var(--accent-purple-dim), transparent);
+      min-height: 100vh;
     }
-
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 2rem;
+    
+    /* Layout */
+    .app {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      grid-template-rows: auto 1fr;
+      min-height: 100vh;
     }
-
+    
     /* Header */
     .header {
+      grid-column: 1 / -1;
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 3rem;
-      padding-bottom: 2rem;
-      border-bottom: 1px solid var(--border-subtle);
+      padding: var(--space-4) var(--space-6);
+      background: var(--color-bg-secondary);
+      border-bottom: 1px solid var(--color-border);
     }
-
-    .logo {
+    
+    .header__logo {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: var(--space-3);
     }
-
-    .logo-icon {
-      width: 48px;
-      height: 48px;
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-      border-radius: 12px;
+    
+    .header__logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--color-emerald-500), var(--color-emerald-600));
+      border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.5rem;
-      box-shadow: var(--glow-cyan);
-    }
-
-    .logo-text h1 {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.75rem;
       font-weight: 700;
-      background: linear-gradient(90deg, var(--text-primary), var(--text-secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      font-size: 18px;
     }
-
-    .logo-text p {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 0.75rem;
-    }
-
-    .btn {
-      padding: 0.6rem 1.25rem;
-      border-radius: 8px;
-      font-family: 'Outfit', sans-serif;
-      font-size: 0.875rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border: none;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .btn-primary {
-      background: var(--accent-cyan);
-      color: var(--bg-primary);
-    }
-
-    .btn-primary:hover {
-      box-shadow: var(--glow-cyan);
-      transform: translateY(-1px);
-    }
-
-    .btn-secondary {
-      background: var(--bg-tertiary);
-      color: var(--text-primary);
-      border: 1px solid var(--border-subtle);
-    }
-
-    .btn-secondary:hover {
-      border-color: var(--border-active);
-    }
-
-    /* Stats Grid */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1rem;
-      margin-bottom: 2.5rem;
-    }
-
-    @media (max-width: 1024px) {
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-
-    .stat-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: 16px;
-      padding: 1.5rem;
-      transition: all 0.3s ease;
-    }
-
-    .stat-card:hover {
-      border-color: var(--border-active);
-      transform: translateY(-2px);
-      box-shadow: var(--glow-cyan);
-    }
-
-    .stat-card.purple:hover {
-      box-shadow: var(--glow-purple);
-    }
-
-    .stat-label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-muted);
-      margin-bottom: 0.5rem;
-    }
-
-    .stat-value {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 2.5rem;
-      font-weight: 700;
-    }
-
-    .stat-value.cyan { color: var(--accent-cyan); }
-    .stat-value.purple { color: var(--accent-purple); }
-    .stat-value.green { color: var(--accent-green); }
-    .stat-value.orange { color: var(--accent-orange); }
-
-    .stat-desc {
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-      margin-top: 0.25rem;
-    }
-
-    /* Main Grid */
-    .main-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 1.5rem;
-    }
-
-    @media (max-width: 1024px) {
-      .main-grid { grid-template-columns: 1fr; }
-    }
-
-    /* Cards */
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-subtle);
-      border-radius: 16px;
-      overflow: hidden;
-    }
-
-    .card-header {
-      padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid var(--border-subtle);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .card-title {
-      font-family: 'Space Grotesk', sans-serif;
-      font-size: 1.1rem;
+    
+    .header__logo-text {
+      font-size: 20px;
       font-weight: 600;
+      letter-spacing: -0.025em;
+    }
+    
+    .header__status {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: var(--space-4);
     }
-
-    .card-title .icon {
-      font-size: 1.25rem;
+    
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-primary-subtle);
+      border: 1px solid var(--color-emerald-700);
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-emerald-400);
     }
-
-    .card-body {
-      padding: 1.5rem;
+    
+    .status-badge__dot {
+      width: 6px;
+      height: 6px;
+      background: var(--color-emerald-400);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
     }
-
-    /* MCP List */
-    .mcp-list {
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      background: var(--color-bg-secondary);
+      border-right: 1px solid var(--color-border);
+      padding: var(--space-4);
+      overflow-y: auto;
+    }
+    
+    .sidebar__section {
+      margin-bottom: var(--space-6);
+    }
+    
+    .sidebar__title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-text-muted);
+      padding: var(--space-2) var(--space-3);
+      margin-bottom: var(--space-1);
+    }
+    
+    .sidebar__nav {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: var(--space-1);
     }
-
-    .mcp-item {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      padding: 1.25rem;
-      transition: all 0.2s ease;
+    
+    .nav-item {
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      border-radius: var(--radius-md);
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all var(--transition-fast);
+      cursor: pointer;
     }
-
-    .mcp-item:hover {
-      border-color: var(--border-active);
-      background: var(--bg-card-hover);
+    
+    .nav-item:hover {
+      background: var(--color-bg-tertiary);
+      color: var(--color-text);
     }
-
-    .mcp-icon {
+    
+    .nav-item--active {
+      background: var(--color-primary-subtle);
+      color: var(--color-emerald-400);
+    }
+    
+    .nav-item__icon {
+      width: 18px;
+      height: 18px;
+      opacity: 0.7;
+    }
+    
+    .nav-item__count {
+      margin-left: auto;
+      padding: 2px 8px;
+      background: var(--color-bg-elevated);
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+    }
+    
+    /* Main Content */
+    .main {
+      padding: var(--space-6);
+      overflow-y: auto;
+    }
+    
+    .main__header {
+      margin-bottom: var(--space-8);
+    }
+    
+    .main__title {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: var(--space-2);
+    }
+    
+    .main__subtitle {
+      font-size: 15px;
+      color: var(--color-text-secondary);
+    }
+    
+    /* Stats Grid */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--space-4);
+      margin-bottom: var(--space-8);
+    }
+    
+    .stat-card {
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      transition: all var(--transition-base);
+    }
+    
+    .stat-card:hover {
+      border-color: var(--color-emerald-700);
+      box-shadow: var(--shadow-glow);
+    }
+    
+    .stat-card__label {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-2);
+    }
+    
+    .stat-card__value {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--color-text);
+    }
+    
+    .stat-card__value--primary {
+      color: var(--color-emerald-400);
+    }
+    
+    /* MCP Servers Grid */
+    .servers {
+      margin-bottom: var(--space-8);
+    }
+    
+    .servers__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-4);
+    }
+    
+    .servers__title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .servers__grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: var(--space-4);
+    }
+    
+    .server-card {
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-5);
+      transition: all var(--transition-base);
+    }
+    
+    .server-card:hover {
+      border-color: var(--color-emerald-700);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .server-card__header {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+    
+    .server-card__icon {
       width: 44px;
       height: 44px;
-      border-radius: 10px;
+      background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-elevated));
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.25rem;
+      font-size: 20px;
+    }
+    
+    .server-card__info {
+      flex: 1;
+    }
+    
+    .server-card__name {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: var(--space-1);
+    }
+    
+    .server-card__desc {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      line-height: 1.4;
+    }
+    
+    .server-card__meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding-top: var(--space-4);
+      border-top: 1px solid var(--color-border-subtle);
+    }
+    
+    .server-card__meta-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+    
+    .server-card__meta-value {
+      font-weight: 600;
+      color: var(--color-text-secondary);
+    }
+    
+    .server-card__tag {
+      padding: var(--space-1) var(--space-2);
+      background: var(--color-primary-subtle);
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-emerald-400);
+    }
+    
+    /* Tools List */
+    .tools {
+      background: var(--color-bg-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    
+    .tools__header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--color-border);
+    }
+    
+    .tools__title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    
+    .tools__search {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-bg-tertiary);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      width: 240px;
+    }
+    
+    .tools__search-icon {
+      width: 16px;
+      height: 16px;
+      color: var(--color-text-muted);
+    }
+    
+    .tools__search-input {
+      flex: 1;
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--color-text);
+      outline: none;
+    }
+    
+    .tools__search-input::placeholder {
+      color: var(--color-text-muted);
+    }
+    
+    .tools__list {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    
+    .tool-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--color-border-subtle);
+      transition: background var(--transition-fast);
+      cursor: pointer;
+    }
+    
+    .tool-item:hover {
+      background: var(--color-bg-tertiary);
+    }
+    
+    .tool-item:last-child {
+      border-bottom: none;
+    }
+    
+    .tool-item__icon {
+      width: 32px;
+      height: 32px;
+      background: var(--color-bg-elevated);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
       flex-shrink: 0;
     }
-
-    .mcp-icon.cyan { background: var(--accent-cyan-dim); }
-    .mcp-icon.purple { background: var(--accent-purple-dim); }
-    .mcp-icon.green { background: var(--accent-green-dim); }
-    .mcp-icon.orange { background: var(--accent-orange-dim); }
-
-    .mcp-info {
+    
+    .tool-item__info {
       flex: 1;
       min-width: 0;
     }
-
-    .mcp-name {
-      font-weight: 600;
-      font-size: 0.95rem;
-      margin-bottom: 0.2rem;
+    
+    .tool-item__name {
+      font-size: 14px;
+      font-weight: 500;
+      font-family: var(--font-mono);
+      margin-bottom: 2px;
     }
-
-    .mcp-desc {
-      font-size: 0.8rem;
-      color: var(--text-secondary);
+    
+    .tool-item__desc {
+      font-size: 12px;
+      color: var(--color-text-muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-
-    .mcp-status {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.75rem;
-      font-family: 'JetBrains Mono', monospace;
+    
+    .tool-item__server {
+      padding: var(--space-1) var(--space-2);
+      background: var(--color-bg-elevated);
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--color-text-muted);
+      flex-shrink: 0;
     }
-
-    .status-badge {
-      padding: 0.3rem 0.65rem;
-      border-radius: 20px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .status-badge.ready {
-      background: var(--accent-green-dim);
-      color: var(--accent-green);
-    }
-
-    .status-badge.local {
-      background: var(--accent-orange-dim);
-      color: var(--accent-orange);
-    }
-
-    /* Protocols */
-    .protocol-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    .protocol-item {
-      background: var(--bg-secondary);
-      border-radius: 10px;
-      padding: 1rem;
-      border-left: 3px solid var(--accent-cyan);
-    }
-
-    .protocol-item.purple { border-left-color: var(--accent-purple); }
-    .protocol-item.green { border-left-color: var(--accent-green); }
-    .protocol-item.orange { border-left-color: var(--accent-orange); }
-
-    .protocol-name {
-      font-weight: 600;
-      font-size: 0.9rem;
-      margin-bottom: 0.25rem;
-    }
-
-    .protocol-desc {
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-    }
-
-    .protocol-cmd {
-      margin-top: 0.5rem;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--accent-cyan);
-      background: var(--bg-primary);
-      padding: 0.4rem 0.6rem;
-      border-radius: 6px;
-      display: inline-block;
-    }
-
-    /* Quick Actions */
-    .action-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.75rem;
-    }
-
-    .action-btn {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-subtle);
-      border-radius: 12px;
-      padding: 1rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      text-align: left;
-    }
-
-    .action-btn:hover {
-      border-color: var(--border-active);
-      background: var(--bg-card-hover);
-      transform: translateY(-2px);
-    }
-
-    .action-btn .icon {
-      font-size: 1.5rem;
-      margin-bottom: 0.5rem;
-      display: block;
-    }
-
-    .action-btn .label {
-      font-weight: 600;
-      font-size: 0.85rem;
-      display: block;
-      margin-bottom: 0.2rem;
-    }
-
-    .action-btn .hint {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-    }
-
-    /* Terminal */
-    .terminal {
-      background: #0d0d12;
-      border-radius: 12px;
-      overflow: hidden;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.8rem;
-    }
-
-    .terminal-header {
-      background: var(--bg-tertiary);
-      padding: 0.5rem 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .terminal-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-    }
-
-    .terminal-dot.red { background: #ff5f57; }
-    .terminal-dot.yellow { background: #ffbd2e; }
-    .terminal-dot.green { background: #28ca42; }
-
-    .terminal-title {
-      margin-left: 0.75rem;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .terminal-body {
-      padding: 1rem;
-      color: var(--text-secondary);
-      min-height: 150px;
-      max-height: 250px;
-      overflow-y: auto;
-    }
-
-    .terminal-line {
-      margin-bottom: 0.25rem;
-    }
-
-    .terminal-line .prompt {
-      color: var(--accent-cyan);
-    }
-
-    .terminal-line .output {
-      color: var(--text-muted);
-    }
-
-    .terminal-line.success .output {
-      color: var(--accent-green);
-    }
-
+    
     /* Footer */
     .footer {
-      margin-top: 3rem;
-      padding-top: 2rem;
-      border-top: 1px solid var(--border-subtle);
-      text-align: center;
-      color: var(--text-muted);
-      font-size: 0.8rem;
+      grid-column: 1 / -1;
+      padding: var(--space-4) var(--space-6);
+      background: var(--color-bg-secondary);
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--color-text-muted);
     }
-
-    .footer a {
-      color: var(--accent-cyan);
+    
+    .footer__links {
+      display: flex;
+      gap: var(--space-4);
+    }
+    
+    .footer__link {
+      color: var(--color-text-secondary);
       text-decoration: none;
+      transition: color var(--transition-fast);
     }
-
-    /* Animations */
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .stat-card, .mcp-item, .protocol-item, .action-btn {
-      animation: fadeIn 0.4s ease forwards;
-    }
-
-    .stat-card:nth-child(1) { animation-delay: 0.05s; }
-    .stat-card:nth-child(2) { animation-delay: 0.1s; }
-    .stat-card:nth-child(3) { animation-delay: 0.15s; }
-    .stat-card:nth-child(4) { animation-delay: 0.2s; }
-
-    .mcp-item:nth-child(1) { animation-delay: 0.1s; }
-    .mcp-item:nth-child(2) { animation-delay: 0.15s; }
-    .mcp-item:nth-child(3) { animation-delay: 0.2s; }
-
-    /* Scrollbar */
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: var(--bg-secondary);
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: var(--border-subtle);
-      border-radius: 3px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--text-muted);
+    
+    .footer__link:hover {
+      color: var(--color-emerald-400);
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="app">
     <!-- Header -->
     <header class="header">
-      <div class="logo">
-        <div class="logo-icon">🎨</div>
-        <div class="logo-text">
-          <h1>DesignDev</h1>
-          <p>Figma AI Workspace • MCP Integration Hub</p>
-        </div>
+      <div class="header__logo">
+        <div class="header__logo-icon">D</div>
+        <span class="header__logo-text">DesignDev</span>
       </div>
-      <div class="header-actions">
-        <button class="btn btn-secondary" onclick="refreshStatus()">
-          <span>↻</span> Refresh
-        </button>
-        <button class="btn btn-primary" onclick="copyConfig()">
-          <span>📋</span> Copy Config
-        </button>
+      <div class="header__status">
+        <div class="status-badge">
+          <span class="status-badge__dot"></span>
+          <span>3 MCPs Connected</span>
+        </div>
       </div>
     </header>
-
-    <!-- Stats -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">MCP Servers</div>
-        <div class="stat-value cyan">3</div>
-        <div class="stat-desc">Figma integrations ready</div>
+    
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar__section">
+        <div class="sidebar__title">Navigation</div>
+        <nav class="sidebar__nav">
+          <a class="nav-item nav-item--active">
+            <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            Dashboard
+          </a>
+          <a class="nav-item">
+            <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+            MCP Servers
+          </a>
+          <a class="nav-item">
+            <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+            </svg>
+            Tools
+            <span class="nav-item__count">56+</span>
+          </a>
+          <a class="nav-item">
+            <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Security
+          </a>
+          <a class="nav-item">
+            <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            Settings
+          </a>
+        </nav>
       </div>
-      <div class="stat-card purple">
-        <div class="stat-label">Tools Available</div>
-        <div class="stat-value purple">80+</div>
-        <div class="stat-desc">Full CRUD capabilities</div>
+      
+      <div class="sidebar__section">
+        <div class="sidebar__title">Quick Actions</div>
+        <nav class="sidebar__nav">
+          <a class="nav-item">
+            <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+            New Connection
+          </a>
+          <a class="nav-item">
+            <svg class="nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Export Config
+          </a>
+        </nav>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">CLI Commands</div>
-        <div class="stat-value green">4</div>
-        <div class="stat-desc">Workflow automation</div>
+    </aside>
+    
+    <!-- Main Content -->
+    <main class="main">
+      <div class="main__header">
+        <h1 class="main__title">Figma AI Workspace</h1>
+        <p class="main__subtitle">Manage your MCP servers and access 56+ Figma tools with full CRUD capabilities</p>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">API Key</div>
-        <div class="stat-value orange">✓</div>
-        <div class="stat-desc">figd_nw5LS6... configured</div>
+      
+      <!-- Stats -->
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-card__label">MCP Servers</div>
+          <div class="stat-card__value stat-card__value--primary">3</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Total Tools</div>
+          <div class="stat-card__value">56+</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Capabilities</div>
+          <div class="stat-card__value">CRUD</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__label">Status</div>
+          <div class="stat-card__value stat-card__value--primary">●</div>
+        </div>
       </div>
-    </div>
-
-    <!-- Main Grid -->
-    <div class="main-grid">
-      <div class="left-col">
-        <!-- MCP Servers -->
-        <div class="card" style="margin-bottom: 1.5rem;">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="icon">🔌</span>
-              MCP Servers
+      
+      <!-- MCP Servers -->
+      <section class="servers">
+        <div class="servers__header">
+          <h2 class="servers__title">MCP Servers</h2>
+        </div>
+        <div class="servers__grid">
+          <!-- figma-console -->
+          <div class="server-card">
+            <div class="server-card__header">
+              <div class="server-card__icon">🎨</div>
+              <div class="server-card__info">
+                <h3 class="server-card__name">figma-console</h3>
+                <p class="server-card__desc">Full CRUD access via Desktop Bridge. 56+ tools for variables, components, execution.</p>
+              </div>
             </div>
-            <span style="font-size: 0.75rem; color: var(--text-muted);">3 configured</span>
+            <div class="server-card__meta">
+              <span class="server-card__meta-item">
+                Tools: <span class="server-card__meta-value">56+</span>
+              </span>
+              <span class="server-card__tag">Full CRUD</span>
+            </div>
           </div>
-          <div class="card-body">
-            <div class="mcp-list">
-              <div class="mcp-item">
-                <div class="mcp-icon cyan">⚡</div>
-                <div class="mcp-info">
-                  <div class="mcp-name">figma-developer</div>
-                  <div class="mcp-desc">Popular npm package (Framelink) • Read/write via REST API</div>
-                </div>
-                <div class="mcp-status">
-                  <span class="status-badge ready">Ready</span>
-                </div>
+          
+          <!-- figma-developer -->
+          <div class="server-card">
+            <div class="server-card__header">
+              <div class="server-card__icon">🔧</div>
+              <div class="server-card__info">
+                <h3 class="server-card__name">figma-developer</h3>
+                <p class="server-card__desc">Official Framelink MCP. Download, simplify, and transform Figma designs to code.</p>
               </div>
-              <div class="mcp-item">
-                <div class="mcp-icon purple">🎛️</div>
-                <div class="mcp-info">
-                  <div class="mcp-name">figma-console</div>
-                  <div class="mcp-desc">56+ tools • FULL CRUD via Desktop Bridge Plugin</div>
-                </div>
-                <div class="mcp-status">
-                  <span class="status-badge local">Local</span>
-                </div>
+            </div>
+            <div class="server-card__meta">
+              <span class="server-card__meta-item">
+                Tools: <span class="server-card__meta-value">8</span>
+              </span>
+              <span class="server-card__tag">Read-Only</span>
+            </div>
+          </div>
+          
+          <!-- claude-talk-to-figma -->
+          <div class="server-card">
+            <div class="server-card__header">
+              <div class="server-card__icon">🤖</div>
+              <div class="server-card__info">
+                <h3 class="server-card__name">claude-talk-to-figma</h3>
+                <p class="server-card__desc">Claude-first optimization with accessibility features and semantic navigation.</p>
               </div>
-              <div class="mcp-item">
-                <div class="mcp-icon green">🤖</div>
-                <div class="mcp-info">
-                  <div class="mcp-name">claude-talk-to-figma</div>
-                  <div class="mcp-desc">Claude-first optimization • Accessibility features</div>
-                </div>
-                <div class="mcp-status">
-                  <span class="status-badge ready">Ready</span>
-                </div>
-              </div>
+            </div>
+            <div class="server-card__meta">
+              <span class="server-card__meta-item">
+                Tools: <span class="server-card__meta-value">21</span>
+              </span>
+              <span class="server-card__tag">Claude-First</span>
             </div>
           </div>
         </div>
-
-        <!-- Terminal -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="icon">⌨️</span>
-              Terminal
-            </div>
-          </div>
-          <div class="terminal">
-            <div class="terminal-header">
-              <div class="terminal-dot red"></div>
-              <div class="terminal-dot yellow"></div>
-              <div class="terminal-dot green"></div>
-              <span class="terminal-title">bash — MCP Test Output</span>
-            </div>
-            <div class="terminal-body" id="terminal">
-              <div class="terminal-line">
-                <span class="prompt">$</span> 
-                <span class="output">npx -y figma-developer-mcp --help</span>
-              </div>
-              <div class="terminal-line success">
-                <span class="output">✓ figma-developer-mcp is ready</span>
-              </div>
-              <div class="terminal-line">
-                <span class="prompt">$</span> 
-                <span class="output">npx -y southleft/figma-console-mcp</span>
-              </div>
-              <div class="terminal-line success">
-                <span class="output">✓ figma-console (Local Mode - 56 tools)</span>
-              </div>
-              <div class="terminal-line">
-                <span class="prompt">$</span> 
-                <span class="output">npx -y arinspunk/claude-talk-to-figma-mcp</span>
-              </div>
-              <div class="terminal-line success">
-                <span class="output">✓ claude-talk-to-figma installed</span>
-              </div>
-              <div class="terminal-line" style="margin-top: 0.5rem;">
-                <span class="prompt" style="color: var(--accent-green);">✔</span> 
-                <span class="output">All MCPs verified and ready</span>
-              </div>
-            </div>
+      </section>
+      
+      <!-- Tools List -->
+      <section class="tools">
+        <div class="tools__header">
+          <h2 class="tools__title">Available Tools</h2>
+          <div class="tools__search">
+            <svg class="tools__search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input type="text" class="tools__search-input" placeholder="Search tools...">
           </div>
         </div>
-      </div>
-
-      <div class="right-col">
-        <!-- Protocols -->
-        <div class="card" style="margin-bottom: 1.5rem;">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="icon">📋</span>
-              Protocols
+        <div class="tools__list">
+          <!-- Sample tools from figma-console -->
+          <div class="tool-item">
+            <div class="tool-item__icon">📝</div>
+            <div class="tool-item__info">
+              <div class="tool-item__name">figma_execute</div>
+              <div class="tool-item__desc">Execute arbitrary JavaScript in Figma's plugin context</div>
             </div>
+            <span class="tool-item__server">figma-console</span>
           </div>
-          <div class="card-body">
-            <div class="protocol-list">
-              <div class="protocol-item">
-                <div class="protocol-name">qmd-First Protocol</div>
-                <div class="protocol-desc">Always search qmd knowledge base before filesystem</div>
-                <div class="protocol-cmd">qmd search "query" -c smaug -n 5</div>
-              </div>
-              <div class="protocol-item purple">
-                <div class="protocol-name">Ralph Loop</div>
-                <div class="protocol-desc">Default orchestration for non-trivial tasks</div>
-                <div class="protocol-cmd">/ralph-loop</div>
-              </div>
-              <div class="protocol-item green">
-                <div class="protocol-name">GSD Workflow</div>
-                <div class="protocol-desc">Spec-driven development with atomic commits</div>
-                <div class="protocol-cmd">/gsd-new-project</div>
-              </div>
-              <div class="protocol-item orange">
-                <div class="protocol-name">Browser Validation</div>
-                <div class="protocol-desc">Chrome DevTools required for UI/web tasks</div>
-                <div class="protocol-cmd">/verify</div>
-              </div>
+          <div class="tool-item">
+            <div class="tool-item__icon">📊</div>
+            <div class="tool-item__info">
+              <div class="tool-item__name">figma_get_variables</div>
+              <div class="tool-item__desc">Extract design tokens with code export support</div>
             </div>
+            <span class="tool-item__server">figma-console</span>
+          </div>
+          <div class="tool-item">
+            <div class="tool-item__icon">🧩</div>
+            <div class="tool-item__info">
+              <div class="tool-item__name">figma_get_component</div>
+              <div class="tool-item__desc">Get component metadata or reconstruction spec</div>
+            </div>
+            <span class="tool-item__server">figma-console</span>
+          </div>
+          <div class="tool-item">
+            <div class="tool-item__icon">📸</div>
+            <div class="tool-item__info">
+              <div class="tool-item__name">figma_take_screenshot</div>
+              <div class="tool-item__desc">Capture screenshot of current page or node</div>
+            </div>
+            <span class="tool-item__server">figma-console</span>
+          </div>
+          <div class="tool-item">
+            <div class="tool-item__icon">🔧</div>
+            <div class="tool-item__info">
+              <div class="tool-item__name">figma_set_instance_properties</div>
+              <div class="tool-item__desc">Update component properties on an instance</div>
+            </div>
+            <span class="tool-item__server">figma-console</span>
+          </div>
+          <div class="tool-item">
+            <div class="tool-item__icon">✨</div>
+            <div class="tool-item__info">
+              <div class="tool-item__name">figma_create_variable</div>
+              <div class="tool-item__desc">Create a new Figma variable in a collection</div>
+            </div>
+            <span class="tool-item__server">figma-console</span>
+          </div>
+          <div class="tool-item">
+            <div class="tool-item__icon">🖼️</div>
+            <div class="tool-item__info">
+              <div class="tool-item__name">figma_instantiate_component</div>
+              <div class="tool-item__desc">Create an instance of a component from design system</div>
+            </div>
+            <span class="tool-item__server">figma-console</span>
+          </div>
+          <div class="tool-item">
+            <div class="tool-item__icon">🔍</div>
+            <div class="tool-item__info">
+              <div class="tool-item__name">figma_search_components</div>
+              <div class="tool-item__desc">Search for components by name, category, or description</div>
+            </div>
+            <span class="tool-item__server">figma-console</span>
+          </div>
+          <div class="tool-item">
+            <div class="tool-item__icon">📤</div>
+            <div class="tool-item__info">
+              <div class="tool-item__name">figma_batch_update_variables</div>
+              <div class="tool-item__desc">Update multiple variable values in one operation</div>
+            </div>
+            <span class="tool-item__server">figma-console</span>
+          </div>
+          <div class="tool-item">
+            <div class="tool-item__icon">📐</div>
+            <div class="tool-item__info">
+              <div class="tool-item__name">figma_arrange_component_set</div>
+              <div class="tool-item__desc">Organize component set with Figma's purple dashed visualization</div>
+            </div>
+            <span class="tool-item__server">figma-console</span>
           </div>
         </div>
-
-        <!-- Quick Actions -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              <span class="icon">⚡</span>
-              Quick Actions
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="action-grid">
-              <button class="action-btn" onclick="copyMcpConfig()">
-                <span class="icon">📄</span>
-                <span class="label">Add to OpenCode</span>
-                <span class="hint">Copy MCP config</span>
-              </button>
-              <button class="action-btn" onclick="runSetup()">
-                <span class="icon">🚀</span>
-                <span class="label">Run Setup</span>
-                <span class="hint">Install dependencies</span>
-              </button>
-              <button class="action-btn" onclick="openDocs()">
-                <span class="icon">📚</span>
-                <span class="label">Documentation</span>
-                <span class="hint">View FIGMA-MCPS.md</span>
-              </button>
-              <button class="action-btn" onclick="openAgents()">
-                <span class="icon">👥</span>
-                <span class="label">Agents</span>
-                <span class="hint">View AGENTS.md</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
+      </section>
+    </main>
+    
     <!-- Footer -->
     <footer class="footer">
-      <p>DesignDev Workspace • <a href="#">Documentation</a> • <a href="#">GitHub</a></p>
-      <p style="margin-top: 0.5rem; color: var(--text-muted);">
-        Config: <code style="background: var(--bg-secondary); padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.7rem;">~/Projects Parent Folder/DesignDev/</code>
-      </p>
+      <div>© 2025 DesignDev — Figma AI Workspace</div>
+      <div class="footer__links">
+        <a href="#" class="footer__link">Documentation</a>
+        <a href="#" class="footer__link">GitHub</a>
+        <a href="#" class="footer__link">API Status</a>
+      </div>
     </footer>
   </div>
-
+  
   <script>
-    function refreshStatus() {
-      const terminal = document.getElementById('terminal');
-      terminal.innerHTML = `
-        <div class="terminal-line">
-          <span class="prompt">$</span> 
-          <span class="output">Refreshing MCP status...</span>
-        </div>
-      `;
-      setTimeout(() => {
-        terminal.innerHTML = `
-          <div class="terminal-line success">
-            <span class="output">✓ All systems operational</span>
-          </div>
-        `;
-      }, 1000);
-    }
-
-    function copyConfig() {
-      const config = {
-        "mcpServers": {
-          "figma-developer": {
-            "command": "npx",
-            "args": ["-y", "figma-developer-mcp"],
-            "env": { "FIGMA_API_KEY": "figd_nw5LS6LoK7taqLFyvLcbXxe2KCtPtjj5KKhOr1mC" }
-          },
-          "figma-console": {
-            "command": "npx",
-            "args": ["-y", "southleft/figma-console-mcp"],
-            "env": { "FIGMA_API_KEY": "figd_nw5LS6LoK7taqLFyvLcbXxe2KCtPtjj5KKhOr1mC" }
-          },
-          "claude-talk-to-figma": {
-            "command": "npx",
-            "args": ["-y", "arinspunk/claude-talk-to-figma-mcp"],
-            "env": { "FIGMA_API_KEY": "figd_nw5LS6LoK7taqLFyvLcbXxe2KCtPtjj5KKhOr1mC" }
-          }
-        }
-      };
-      navigator.clipboard.writeText(JSON.stringify(config, null, 2));
-      alert('MCP config copied to clipboard!');
-    }
-
-    function copyMcpConfig() {
-      const config = `{
-  "mcpServers": {
-    "figma-developer": {
-      "command": "npx",
-      "args": ["-y", "figma-developer-mcp"],
-      "env": { "FIGMA_API_KEY": "figd_nw5LS6LoK7taqLFyvLcbXxe2KCtPtjj5KKhOr1mC" }
-    },
-    "figma-console": {
-      "command": "npx",
-      "args": ["-y", "southleft/figma-console-mcp"],
-      "env": { "FIGMA_API_KEY": "figd_nw5LS6LoK7taqLFyvLcbXxe2KCtPtjj5KKhOr1mC" }
-    },
-    "claude-talk-to-figma": {
-      "command": "npx",
-      "args": ["-y", "arinspunk/claude-talk-to-figma-mcp"],
-      "env": { "FIGMA_API_KEY": "figd_nw5LS6LoK7taqLFyvLcbXxe2KCtPtjj5KKhOr1mC" }
-    }
-  }
-}`;
-      navigator.clipboard.writeText(config);
-      alert('MCP config copied!');
-    }
-
-    function runSetup() {
-      window.open('macos-terminal://cd "/Users/william/Projects Parent Folder/DesignDev" && ./mcps/add-to-opencode.sh');
-    }
-
-    function openDocs() {
-      window.open('file:///Users/william/Projects%20Parent%20Folder/DesignDev/docs/knowledge/FIGMA-MCPS.html');
-    }
-
-    function openAgents() {
-      window.open('file:///Users/william/Projects%20Parent%20Folder/DesignDev/AGENTS.html');
-    }
+    // Simple search functionality
+    document.querySelector('.tools__search-input').addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      document.querySelectorAll('.tool-item').forEach(item => {
+        const name = item.querySelector('.tool-item__name').textContent.toLowerCase();
+        const desc = item.querySelector('.tool-item__desc').textContent.toLowerCase();
+        item.style.display = (name.includes(query) || desc.includes(query)) ? 'flex' : 'none';
+      });
+    });
   </script>
 </body>
 </html>
