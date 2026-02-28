@@ -1,0 +1,1714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Designer</title>
+  <style>
+/* ========================================
+   FIGMA NATIVE UI DESIGN SYSTEM
+   Matches Figma's own interface patterns
+   ======================================== */
+
+:root {
+  /* Figma's actual color palette */
+  --figma-bg-primary: #1e1e1e;
+  --figma-bg-secondary: #2c2c2c;
+  --figma-bg-tertiary: #383838;
+  --figma-bg-hover: #444444;
+  --figma-bg-active: #505050;
+  
+  /* Figma's text colors */
+  --figma-text-primary: #ffffff;
+  --figma-text-secondary: #b3b3b3;
+  --figma-text-tertiary: #808080;
+  --figma-text-disabled: #5c5c5c;
+  
+  /* Figma's border colors */
+  --figma-border: #3e3e3e;
+  --figma-border-hover: #4e4e4e;
+  --figma-border-focus: #0d99ff;
+  
+  /* Figma's accent colors */
+  --figma-blue: #0d99ff;
+  --figma-blue-hover: #1aa3ff;
+  --figma-purple: #9747ff;
+  --figma-green: #14ae5c;
+  --figma-red: #e5484d;
+  --figma-orange: #ff8f3f;
+  
+  /* Figma's sizing */
+  --figma-radius-sm: 4px;
+  --figma-radius-md: 6px;
+  --figma-radius-lg: 8px;
+  --figma-spacing-xs: 4px;
+  --figma-spacing-sm: 8px;
+  --figma-spacing-md: 12px;
+  --figma-spacing-lg: 16px;
+  --figma-spacing-xl: 24px;
+  
+  /* Typography - Figma uses Inter */
+  --figma-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --figma-font-xs: 11px;
+  --figma-font-sm: 12px;
+  --figma-font-md: 13px;
+  --figma-font-lg: 14px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--figma-font-family);
+  font-size: var(--figma-font-md);
+  line-height: 1.45;
+  background: var(--figma-bg-primary);
+  color: var(--figma-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========================================
+   LAYOUT
+   ======================================== */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: var(--figma-spacing-md);
+  gap: var(--figma-spacing-md);
+}
+
+/* ========================================
+   HEADER - Figma Panel Style
+   ======================================== */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--figma-spacing-sm);
+  border-bottom: 1px solid var(--figma-border);
+}
+
+.title {
+  font-size: var(--figma-font-lg);
+  font-weight: 600;
+  color: var(--figma-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.header-actions {
+  display: flex;
+  gap: var(--figma-spacing-xs);
+}
+
+/* ========================================
+   BUTTONS - Figma Native Style
+   ======================================== */
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 var(--figma-spacing-sm);
+  background: transparent;
+  border: none;
+  border-radius: var(--figma-radius-sm);
+  color: var(--figma-text-secondary);
+  font-size: var(--figma-font-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.icon-btn:hover {
+  background: var(--figma-bg-tertiary);
+  color: var(--figma-text-primary);
+}
+
+.icon-btn:active {
+  background: var(--figma-bg-hover);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--figma-spacing-xs);
+  width: 100%;
+  height: 36px;
+  padding: 0 var(--figma-spacing-lg);
+  background: var(--figma-blue);
+  border: none;
+  border-radius: var(--figma-radius-md);
+  color: #ffffff;
+  font-size: var(--figma-font-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--figma-blue-hover);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 var(--figma-spacing-md);
+  background: var(--figma-bg-tertiary);
+  border: none;
+  border-radius: var(--figma-radius-md);
+  color: var(--figma-text-primary);
+  font-size: var(--figma-font-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--figma-bg-hover);
+}
+
+/* ========================================
+   MODEL SELECTOR - Figma Toggle Style
+   ======================================== */
+
+.section-label {
+  display: block;
+  font-size: var(--figma-font-xs);
+  font-weight: 500;
+  color: var(--figma-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--figma-spacing-sm);
+}
+
+.model-grid {
+  display: flex;
+  background: var(--figma-bg-secondary);
+  border-radius: var(--figma-radius-md);
+  padding: 3px;
+  gap: 2px;
+}
+
+.model-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--figma-spacing-sm) var(--figma-spacing-xs);
+  background: transparent;
+  border: none;
+  border-radius: var(--figma-radius-sm);
+  color: var(--figma-text-secondary);
+  font-size: var(--figma-font-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.model-btn:hover:not(.active) {
+  color: var(--figma-text-primary);
+}
+
+.model-btn.active {
+  background: var(--figma-bg-tertiary);
+  color: var(--figma-text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.model-icon {
+  width: 16px;
+  height: 16px;
+  margin-bottom: 2px;
+}
+
+.model-name {
+  font-size: var(--figma-font-xs);
+  font-weight: 500;
+}
+
+.model-badge {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  background: var(--figma-green);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* ========================================
+   INPUTS - Figma Native Style
+   ======================================== */
+
+.prompt-input {
+  width: 100%;
+  min-height: 100px;
+  padding: var(--figma-spacing-sm) var(--figma-spacing-md);
+  background: var(--figma-bg-secondary);
+  border: 1px solid var(--figma-border);
+  border-radius: var(--figma-radius-md);
+  color: var(--figma-text-primary);
+  font-family: var(--figma-font-family);
+  font-size: var(--figma-font-md);
+  line-height: 1.45;
+  resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.prompt-input:hover {
+  border-color: var(--figma-border-hover);
+}
+
+.prompt-input:focus {
+  outline: none;
+  border-color: var(--figma-border-focus);
+  box-shadow: 0 0 0 2px rgba(13, 153, 255, 0.2);
+}
+
+.prompt-input::placeholder {
+  color: var(--figma-text-tertiary);
+}
+
+/* ========================================
+   STATUS MESSAGES - Figma Toast Style
+   ======================================== */
+
+.status-box {
+  display: flex;
+  align-items: center;
+  gap: var(--figma-spacing-sm);
+  padding: var(--figma-spacing-sm) var(--figma-spacing-md);
+  border-radius: var(--figma-radius-md);
+  font-size: var(--figma-font-sm);
+  line-height: 1.4;
+}
+
+.status-loading {
+  background: rgba(13, 153, 255, 0.1);
+  border: 1px solid rgba(13, 153, 255, 0.3);
+  color: var(--figma-blue);
+}
+
+.status-error {
+  background: rgba(229, 72, 77, 0.1);
+  border: 1px solid rgba(229, 72, 77, 0.3);
+  color: var(--figma-red);
+}
+
+.status-success {
+  background: rgba(20, 174, 92, 0.1);
+  border: 1px solid rgba(20, 174, 92, 0.3);
+  color: var(--figma-green);
+}
+
+/* ========================================
+   SPINNER - Figma Style
+   ======================================== */
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(13, 153, 255, 0.25);
+  border-top-color: var(--figma-blue);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ========================================
+   FOOTER - Figma Status Bar Style
+   ======================================== */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--figma-spacing-sm);
+  border-top: 1px solid var(--figma-border);
+  font-size: var(--figma-font-xs);
+  color: var(--figma-text-tertiary);
+}
+
+.footer-status {
+  display: flex;
+  align-items: center;
+  gap: var(--figma-spacing-xs);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--figma-text-tertiary);
+}
+
+.status-dot.ready {
+  background: var(--figma-green);
+}
+
+.status-dot.warning {
+  background: var(--figma-orange);
+}
+
+/* ========================================
+   MODAL - Figma Dialog Style
+   ======================================== */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  background: var(--figma-bg-secondary);
+  border: 1px solid var(--figma-border);
+  border-radius: var(--figma-radius-lg);
+  width: calc(100% - 32px);
+  max-width: 380px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--figma-spacing-md) var(--figma-spacing-lg);
+  border-bottom: 1px solid var(--figma-border);
+}
+
+.modal-header h2 {
+  font-size: var(--figma-font-lg);
+  font-weight: 600;
+  color: var(--figma-text-primary);
+}
+
+.close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: var(--figma-radius-sm);
+  color: var(--figma-text-tertiary);
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.close-btn:hover {
+  background: var(--figma-bg-tertiary);
+  color: var(--figma-text-primary);
+}
+
+.modal-body {
+  padding: var(--figma-spacing-lg);
+  overflow-y: auto;
+}
+
+.modal-footer {
+  display: flex;
+  gap: var(--figma-spacing-sm);
+  padding: var(--figma-spacing-md) var(--figma-spacing-lg);
+  border-top: 1px solid var(--figma-border);
+}
+
+.modal-footer .btn-secondary,
+.modal-footer .btn-primary {
+  flex: 1;
+  height: 36px;
+}
+
+/* ========================================
+   FORM ELEMENTS - Figma Style
+   ======================================== */
+
+.api-key-item {
+  margin-bottom: var(--figma-spacing-lg);
+}
+
+.api-key-item:last-child {
+  margin-bottom: 0;
+}
+
+.api-key-item label {
+  display: flex;
+  align-items: center;
+  gap: var(--figma-spacing-sm);
+  margin-bottom: var(--figma-spacing-sm);
+}
+
+.api-name {
+  font-size: var(--figma-font-sm);
+  font-weight: 500;
+  color: var(--figma-text-primary);
+}
+
+.input-group {
+  display: flex;
+  gap: var(--figma-spacing-xs);
+}
+
+.input-group input {
+  flex: 1;
+  height: 32px;
+  padding: 0 var(--figma-spacing-sm);
+  background: var(--figma-bg-primary);
+  border: 1px solid var(--figma-border);
+  border-radius: var(--figma-radius-sm);
+  color: var(--figma-text-primary);
+  font-family: var(--figma-font-family);
+  font-size: var(--figma-font-sm);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.input-group input:hover {
+  border-color: var(--figma-border-hover);
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: var(--figma-border-focus);
+  box-shadow: 0 0 0 2px rgba(13, 153, 255, 0.2);
+}
+
+.input-group input.valid {
+  border-color: var(--figma-green);
+}
+
+.toggle-visibility {
+  height: 32px;
+  padding: 0 var(--figma-spacing-sm);
+  background: var(--figma-bg-primary);
+  border: 1px solid var(--figma-border);
+  border-radius: var(--figma-radius-sm);
+  color: var(--figma-text-secondary);
+  font-size: var(--figma-font-xs);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.toggle-visibility:hover {
+  background: var(--figma-bg-tertiary);
+  color: var(--figma-text-primary);
+}
+
+.key-status {
+  display: flex;
+  align-items: center;
+  gap: var(--figma-spacing-xs);
+  margin-top: var(--figma-spacing-xs);
+  font-size: var(--figma-font-xs);
+}
+
+.key-status.configured {
+  color: var(--figma-green);
+}
+
+.key-status.not-configured {
+  color: var(--figma-text-tertiary);
+}
+
+/* ========================================
+   SETTINGS HINT
+   ======================================== */
+
+.settings-hint {
+  font-size: var(--figma-font-sm);
+  color: var(--figma-text-tertiary);
+  margin-bottom: var(--figma-spacing-lg);
+  line-height: 1.45;
+}
+
+/* ========================================
+   SAVE FEEDBACK
+   ======================================== */
+
+.save-feedback {
+  text-align: center;
+  padding: var(--figma-spacing-sm);
+  border-radius: var(--figma-radius-sm);
+  font-size: var(--figma-font-sm);
+  margin-top: var(--figma-spacing-md);
+}
+
+.save-feedback.success {
+  background: rgba(20, 174, 92, 0.15);
+  color: var(--figma-green);
+}
+
+.save-feedback.error {
+  background: rgba(229, 72, 77, 0.15);
+  color: var(--figma-red);
+}
+
+/* ========================================
+   UTILITY
+   ======================================== */
+
+.hidden {
+  display: none !important;
+}
+
+/* ========================================
+   KEYBOARD SHORTCUT HINT
+   ======================================== */
+
+.shortcut-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: var(--figma-bg-tertiary);
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--figma-text-tertiary);
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+}
+
+ /* Services Status Panel */
+ .services-panel {
+   background: var(--figma-bg-secondary);
+   border-radius: var(--figma-radius-md);
+   padding: var(--figma-spacing-sm) var(--figma-spacing-md);
+   transition: all 0.2s ease;
+ }
+ 
+ .services-panel.collapsed .services-list,
+ .services-panel.collapsed .btn-run-services,
+ .services-panel.collapsed .service-hint {
+   display: none;
+ }
+ 
+ .services-panel.collapsed {
+   padding: var(--figma-spacing-xs) var(--figma-spacing-md);
+ }
+
+ .services-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--figma-spacing-sm);
+}
+
+.services-title {
+  font-size: var(--figma-font-xs);
+  font-weight: 500;
+  color: var(--figma-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.refresh-btn {
+  background: transparent;
+  border: none;
+  color: var(--figma-text-tertiary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.refresh-btn:hover {
+  background: var(--figma-bg-tertiary);
+  color: var(--figma-text-primary);
+}
+
+.services-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.service-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: var(--figma-bg-primary);
+  border-radius: 4px;
+}
+
+.service-name {
+  font-size: var(--figma-font-sm);
+  color: var(--figma-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.service-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-indicator.online {
+  background: var(--figma-green);
+  box-shadow: 0 0 6px var(--figma-green);
+}
+
+.status-indicator.offline {
+  background: var(--figma-red);
+}
+
+.status-indicator.checking {
+  background: var(--figma-orange);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.service-hint {
+  font-size: 10px;
+  color: var(--figma-text-tertiary);
+  margin-top: 4px;
+}
+
+.btn-run-services {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 28px;
+  margin-top: 8px;
+  background: var(--figma-bg-tertiary);
+  border: 1px solid var(--figma-border);
+  border-radius: var(--figma-radius-sm);
+  color: var(--figma-text-primary);
+  font-size: var(--figma-font-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-run-services:hover {
+  background: var(--figma-bg-hover);
+  border-color: var(--figma-border-hover);
+}
+
+.btn-run-services:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-run-services.running {
+  background: rgba(13, 153, 255, 0.15);
+  border-color: var(--figma-blue);
+  color: var(--figma-blue);
+}
+
+/* ========================================
+   TOOLTIPS
+   ======================================== */
+
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: var(--figma-bg-primary);
+  border: 1px solid var(--figma-border);
+  border-radius: var(--figma-radius-sm);
+  font-size: 11px;
+  color: var(--figma-text-primary);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+[data-tooltip]:hover::after {
+  opacity: 1;
+}
+
+/* ========================================
+   PRESET PROMPTS
+   ======================================== */
+
+.presets-dropdown {
+  position: relative;
+  margin-bottom: var(--figma-spacing-sm);
+}
+
+.presets-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 32px;
+  padding: 0 var(--figma-spacing-sm);
+  background: var(--figma-bg-secondary);
+  border: 1px solid var(--figma-border);
+  border-radius: var(--figma-radius-sm);
+  color: var(--figma-text-secondary);
+  font-size: var(--figma-font-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.presets-toggle:hover {
+  border-color: var(--figma-border-hover);
+  color: var(--figma-text-primary);
+}
+
+.presets-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--figma-bg-secondary);
+  border: 1px solid var(--figma-border);
+  border-radius: var(--figma-radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  max-height: 200px;
+  overflow-y: auto;
+  display: none;
+}
+
+.presets-menu.open {
+  display: block;
+}
+
+.preset-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  border-bottom: 1px solid var(--figma-border);
+}
+
+.preset-item:last-child {
+  border-bottom: none;
+}
+
+.preset-item:hover {
+  background: var(--figma-bg-tertiary);
+}
+
+.preset-name {
+  font-size: var(--figma-font-sm);
+  color: var(--figma-text-primary);
+  font-weight: 500;
+}
+
+.preset-desc {
+  font-size: 11px;
+  color: var(--figma-text-tertiary);
+}
+
+/* ========================================
+   ERROR RETRY
+   ======================================== */
+
+.error-actions {
+  display: flex;
+  gap: var(--figma-spacing-sm);
+  margin-top: var(--figma-spacing-sm);
+}
+
+.btn-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--figma-bg-tertiary);
+  border: 1px solid var(--figma-border);
+  border-radius: var(--figma-radius-sm);
+  color: var(--figma-text-primary);
+  font-size: var(--figma-font-xs);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-retry:hover {
+  background: var(--figma-bg-hover);
+  border-color: var(--figma-border-hover);
+}
+
+/* ========================================
+   KEYBOARD SHORTCUTS PANEL
+   ======================================== */
+
+.shortcuts-panel {
+  background: var(--figma-bg-secondary);
+  border-radius: var(--figma-radius-md);
+  padding: var(--figma-spacing-sm);
+  margin-top: var(--figma-spacing-sm);
+}
+
+.shortcuts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.shortcut-key {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+  font-size: 10px;
+  background: var(--figma-bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--figma-text-secondary);
+}
+
+.shortcut-action {
+  font-size: 11px;
+  color: var(--figma-text-tertiary);
+}
+
+/* ========================================
+   FOCUS STATES - Accessibility
+   ======================================== */
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--figma-border-focus);
+  outline-offset: 2px;
+}
+
+.icon-btn:focus-visible,
+.model-btn:focus-visible {
+  outline: 2px solid var(--figma-border-focus);
+  outline-offset: 1px;
+}
+
+/* ========================================
+   COLLAPSE TOGGLE
+   ======================================== */
+
+.collapse-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  border: none;
+  color: var(--figma-text-tertiary);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.collapse-toggle:hover {
+  background: var(--figma-bg-tertiary);
+  color: var(--figma-text-primary);
+}
+
+.collapse-toggle svg {
+  transition: transform 0.2s ease;
+}
+
+.collapsed .collapse-toggle svg {
+  transform: rotate(-90deg);
+}
+ </style>
+ </head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <h1 class="title">AI Designer</h1>
+      <div class="header-actions">
+        <button type="button" class="icon-btn" id="settingsBtn" title="Settings">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 10a2 2 0 100-4 2 2 0 000 4z" fill="currentColor"/>
+            <path d="M12.933 8.823a.5.5 0 00-.067-.236l-.446-.813a4 4 0 00-.236-.376l.226-.887a.5.5 0 00-.186-.52l-.79-.588a.5.5 0 00-.54-.053l-.813.446a4.003 4.003 0 00-.376.236l-.887-.226a.5.5 0 00-.52.186l-.588.79a.5.5 0 00-.053.54l.446.813a4 4 0 00.236.376l-.226.887a.5.5 0 00.186.52l.79.588a.5.5 0 00.54.053l.813-.446a4 4 0 00.376-.236l.887.226a.5.5 0 00.52-.186l.588-.79a.5.5 0 00.053-.54l-.446-.813zM8 11a3 3 0 110-6 3 3 0 010 6z" fill="currentColor"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Services Status Panel -->
+    <div class="services-panel" id="servicesPanel">
+      <div class="services-header">
+        <span class="services-title">Services</span>
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <button type="button" class="collapse-toggle" id="collapseServicesBtn" data-tooltip="Collapse" aria-label="Collapse services panel">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M3 6l5 5 5-5H3z"/>
+            </svg>
+          </button>
+          <button type="button" class="refresh-btn" id="refreshServicesBtn" data-tooltip="Refresh status" aria-label="Refresh services status">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 2a6 6 0 100 12A6 6 0 008 2zm0 1a5 5 0 110 10 5 5 0 010-10zm-.5 2v2.793l2 2 .707-.707L8.5 7.293V5h-1z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="services-list">
+        <div class="service-item">
+          <span class="service-name">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 0l2 6h6l-5 4 2 6-5-4-5 4 2-6-5-4h6l2-6z"/>
+            </svg>
+            MiniMax M2.5 (Ollama)
+          </span>
+          <span class="service-status">
+            <span class="status-indicator checking" id="ollamaStatus"></span>
+            <span id="ollamaStatusText">checking...</span>
+          </span>
+        </div>
+        <div class="service-item">
+          <span class="service-name">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 2c3.3 0 6 2.7 6 6s-2.7 6-6 6c-1.8 0-3.4-.8-4.5-2l1.5-1.3c.7.8 1.8 1.3 3 1.3 2.2 0 4-1.8 4-4s-1.8-4-4-4c-1.2 0-2.3.5-3 1.3L3.5 4C4.6 2.8 6.2 2 8 2z"/>
+            </svg>
+            Kimi K2.5 (Proxy)
+          </span>
+          <span class="service-status">
+            <span class="status-indicator checking" id="proxyStatus"></span>
+            <span id="proxyStatusText">checking...</span>
+          </span>
+        </div>
+      </div>
+      <button type="button" class="btn-run-services" id="runServicesBtn">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M4 2l10 6-10 6V2z"/>
+        </svg>
+        Run: ./start-services.sh
+      </button>
+      <div class="service-hint" id="serviceHint"></div>
+    </div>
+
+    <!-- Model Selector -->
+    <div class="model-selector">
+      <label class="section-label">Model</label>
+      <div class="model-grid">
+        <button type="button" class="model-btn active" data-mode="glm">
+          <svg class="model-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 1l2.5 5 5.5.8-4 3.9.9 5.3L8 13.5 3.1 16l.9-5.3-4-3.9 5.5-.8L8 1z"/>
+          </svg>
+          <span class="model-name">GLM-5</span>
+          <span class="model-badge">Free</span>
+        </button>
+        <button type="button" class="model-btn" data-mode="kimi">
+          <svg class="model-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 2c3.3 0 6 2.7 6 6s-2.7 6-6 6c-1.8 0-3.4-.8-4.5-2l1.5-1.3c.7.8 1.8 1.3 3 1.3 2.2 0 4-1.8 4-4s-1.8-4-4-4c-1.2 0-2.3.5-3 1.3L3.5 4C4.6 2.8 6.2 2 8 2zm-1 4h2v4H7V6zm0-2h2v1H7V4z"/>
+          </svg>
+          <span class="model-name">Kimi</span>
+        </button>
+        <button type="button" class="model-btn" data-mode="minimax">
+          <svg class="model-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 0l2 6h6l-5 4 2 6-5-4-5 4 2-6-5-4h6l2-6z"/>
+          </svg>
+          <span class="model-name">M2.5</span>
+          <span class="model-badge">New</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Prompt Input -->
+    <div class="prompt-section" style="flex: 1; display: flex; flex-direction: column;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--figma-spacing-sm);">
+        <label class="section-label" style="margin-bottom: 0;">Describe your design</label>
+        <div class="presets-dropdown" id="presetsDropdown" style="position: relative;">
+          <button type="button" class="presets-toggle" id="presetsToggle" aria-haspopup="listbox" aria-expanded="false">
+            <span>Quick Templates</span>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M3 6l5 5 5-5H3z"/>
+            </svg>
+          </button>
+            <div class="presets-menu" id="presetsMenu" role="listbox" aria-label="Design templates">
+            <button type="button" class="preset-item" data-prompt="Create an organism/login-form with: atom/input for email, atom/input for password, atom/checkbox for remember me, and atom/button for submit. Include proper spacing, shadows, and use semanticColor for all fills. Follow atomic design - create separate atoms first, then compose into organism." role="option">
+              <span class="preset-name">Login Form</span>
+              <span class="preset-desc">Organism: Email, password, submit</span>
+            </button>
+            <button type="button" class="preset-item" data-prompt="Create an atom/button with label property using componentProperties. Use horizontal layout, centered text, padding 12px 24px, corner radius 8px. Use semanticColor: primary for fills, primary-foreground for text. Set primaryAxisSizingMode: AUTO for hug contents." role="option">
+              <span class="preset-name">Button Atom</span>
+              <span class="preset-desc">Atom with label property</span>
+            </button>
+            <button type="button" class="preset-item" data-prompt="Create an atom/input with placeholder text, proper border styling, and focus states. Use horizontal layout, padding 12px 16px, corner radius 8px. Use semanticColor: border for strokes." role="option">
+              <span class="preset-name">Input Atom</span>
+              <span class="preset-desc">Atom with placeholder</span>
+            </button>
+            <button type="button" class="preset-item" data-prompt="Create an atom/badge with compact padding (4px 8px), pill shape (cornerRadius: full), 12px font size. Use semanticColor: muted for background, muted-foreground for text. Set AUTO sizing." role="option">
+              <span class="preset-name">Badge Atom</span>
+              <span class="preset-desc">Compact tag component</span>
+            </button>
+            <button type="button" class="preset-item" data-prompt="Create a molecule/form-field combining atom/label and atom/input. Use vertical layout with 8px gap between label and input. Include proper spacing and semantic colors." role="option">
+              <span class="preset-name">Form Field Molecule</span>
+              <span class="preset-desc">Label + Input combination</span>
+            </button>
+            <button type="button" class="preset-item" data-prompt="Create an organism/header with: atom/logo on left, molecule/nav-links in center, molecule/user-menu on right. Use horizontal layout with proper itemSpacing. Use semanticColor for all fills." role="option">
+              <span class="preset-name">Header Organism</span>
+              <span class="preset-desc">Logo, nav, user menu</span>
+            </button>
+            <button type="button" class="preset-item" data-prompt="Create an organism/pricing-card with plan name, price display, feature list using vertical layout. Use molecule/feature-item for each feature with checkmark icons. Include atom/button for CTA. Apply semanticColor: primary for CTA button." role="option">
+              <span class="preset-name">Pricing Card</span>
+              <span class="preset-desc">Plan details with CTA</span>
+            </button>
+            <button type="button" class="preset-item" data-prompt="Create a molecule/card with shadow effect, rounded corners (12px), padding 24px. Use vertical layout. Include atom/avatar, atom/title, and atom/description as children. Use semanticColor: background for fill." role="option">
+              <span class="preset-name">Card Molecule</span>
+              <span class="preset-desc">Container with shadow</span>
+            </button>
+            <button type="button" class="preset-item" data-prompt="Create an atom/avatar with circular shape (40x40), border, and optional status indicator. Use semanticColor: muted for background placeholder." role="option">
+              <span class="preset-name">Avatar Atom</span>
+              <span class="preset-desc">User avatar with status</span>
+            </button>
+            <button type="button" class="preset-item" data-prompt="Create a molecule/toast with icon, message text, and close button. Create variants for success (green), error (red), warning (yellow). Use horizontal layout, corner radius 8px, semanticColor fills." role="option">
+              <span class="preset-name">Toast Molecule</span>
+              <span class="preset-desc">Notification with variants</span>
+            </button>
+            <button type="button" class="preset-item" data-prompt="Create an organism/sidebar with logo at top, navigation links in vertical layout, active state styling. Use semanticColor: background for fill, border for dividers. Include hover states." role="option">
+              <span class="preset-name">Sidebar Organism</span>
+              <span class="preset-desc">Navigation sidebar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <textarea 
+        class="prompt-input" 
+        id="promptInput" 
+        placeholder="e.g., Create a login form with email, password fields and a submit button&#10;&#10;Tip: Be specific about layout, colors, and components"
+        style="flex: 1;"
+        aria-label="Design description"
+        spellcheck="true"
+      ></textarea>
+    </div>
+
+    <!-- Status Box -->
+    <div class="status-box hidden" id="statusBox"></div>
+    
+    <!-- Error Box with Retry -->
+    <div class="status-box status-error hidden" id="errorBox">
+      <span id="errorMessage"></span>
+      <div class="error-actions">
+        <button type="button" class="btn-retry" id="retryBtn">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 2a6 6 0 100 12A6 6 0 008 2zm0 1a5 5 0 110 10 5 5 0 010-10z"/>
+            <path d="M8 5v3l2 2" stroke="currentColor" fill="none" stroke-width="1.5"/>
+          </svg>
+          Try Again
+        </button>
+        <button type="button" class="btn-retry" id="dismissErrorBtn">Dismiss</button>
+      </div>
+    </div>
+
+    <!-- Generate Button -->
+    <button type="button" class="btn-primary" id="generateBtn">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z" fill="currentColor"/>
+      </svg>
+      Generate Design
+    </button>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="poweredBy">GLM-5</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button type="button" class="shortcut-hint" id="shortcutsToggle" style="cursor: pointer; background: transparent; border: none;" aria-label="Show keyboard shortcuts">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M2 4h2v2H2V4zm4 0h2v2H6V4zm4 0h2v2h-2V4zm2 3h2v2h-2V7zM2 7h2v2H2V7zm4 0h4v2H6V7zm-4 3h2v2H2v-2zm4 0h2v2H6v-2zm4 0h4v2h-4v-2z"/>
+          </svg>
+          ⌘
+        </button>
+        <span class="shortcut-hint">⌘ + Enter</span>
+      </div>
+    </footer>
+    
+    <!-- Keyboard Shortcuts Panel -->
+    <div class="shortcuts-panel hidden" id="shortcutsPanel">
+      <div class="shortcuts-grid">
+        <div class="shortcut-item">
+          <span class="shortcut-action">Generate</span>
+          <span class="shortcut-key">⌘ + Enter</span>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-action">Close modal</span>
+          <span class="shortcut-key">Esc</span>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-action">Open settings</span>
+          <span class="shortcut-key">⌘ + ,</span>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-action">Clear prompt</span>
+          <span class="shortcut-key">⌘ + K</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay hidden" id="settingsModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>API Keys</h2>
+          <button type="button" class="close-btn" id="closeSettingsBtn">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="settings-hint">Your API keys are stored locally in Figma's secure storage and never sent to our servers.</p>
+          
+          <div class="api-key-list">
+            <div class="api-key-item">
+              <label>
+                <span class="api-name">Z.AI Coding Plan (GLM-5)</span>
+              </label>
+              <div class="input-group">
+                <input type="password" id="glmKeyInput" placeholder="Enter your Coding Plan key">
+                <button type="button" class="toggle-visibility" data-target="glmKeyInput">Show</button>
+              </div>
+              <div class="key-status not-configured" id="glmKeyStatus">Not configured</div>
+            </div>
+            
+            <div class="api-key-item">
+              <label>
+                <span class="api-name">NVIDIA NIM (Kimi K2.5)</span>
+              </label>
+              <div class="input-group">
+                <input type="password" id="kimiKeyInput" placeholder="Enter your NVIDIA API key">
+                <button type="button" class="toggle-visibility" data-target="kimiKeyInput">Show</button>
+              </div>
+              <div class="settings-hint" style="margin-top: 4px; margin-bottom: 0; font-size: 11px;">
+                Requires proxy: <code style="background: var(--figma-bg-tertiary); padding: 2px 6px; border-radius: 3px;">npm run proxy</code>
+              </div>
+              <div class="key-status not-configured" id="kimiKeyStatus">Not configured</div>
+            </div>
+            
+            <div class="api-key-item">
+              <label>
+                <span class="api-name">MiniMax M2.5 (Ollama)</span>
+              </label>
+              <div class="settings-hint" style="margin-top: 4px; margin-bottom: 0; font-size: 11px;">
+                Run with CORS: <code style="background: var(--figma-bg-tertiary); padding: 2px 6px; border-radius: 3px;">OLLAMA_ORIGINS="*" ollama serve</code>
+              </div>
+              <div class="key-status configured" style="margin-top: 8px;">Local (no key required)</div>
+            </div>
+          </div>
+          
+          <div class="save-feedback hidden" id="saveFeedback"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="cancelSettingsBtn">Cancel</button>
+          <button type="button" class="btn-primary" id="saveSettingsBtn">Save Keys</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+(function() {
+  'use strict';
+  
+  // State
+  var state = {
+    mode: 'glm',
+    prompt: '',
+    isGenerating: false,
+    apiKeys: { glm: '', kimi: '' }
+  };
+  
+  // DOM helpers
+  function $(id) { return document.getElementById(id); }
+  function show(el) { el && el.classList.remove('hidden'); }
+  function hide(el) { el && el.classList.add('hidden'); }
+  
+  // Elements
+  var elements = {
+    promptInput: $('promptInput'),
+    generateBtn: $('generateBtn'),
+    settingsBtn: $('settingsBtn'),
+    settingsModal: $('settingsModal'),
+    closeSettingsBtn: $('closeSettingsBtn'),
+    cancelSettingsBtn: $('cancelSettingsBtn'),
+    saveSettingsBtn: $('saveSettingsBtn'),
+    glmKeyInput: $('glmKeyInput'),
+    kimiKeyInput: $('kimiKeyInput'),
+    glmKeyStatus: $('glmKeyStatus'),
+    kimiKeyStatus: $('kimiKeyStatus'),
+    modelBtns: document.querySelectorAll('.model-btn'),
+    statusBox: $('statusBox'),
+    errorBox: $('errorBox'),
+    errorMessage: $('errorMessage'),
+    retryBtn: $('retryBtn'),
+    dismissErrorBtn: $('dismissErrorBtn'),
+    poweredBy: $('poweredBy'),
+    statusDot: $('statusDot'),
+    saveFeedback: $('saveFeedback'),
+    refreshServicesBtn: $('refreshServicesBtn'),
+    runServicesBtn: $('runServicesBtn'),
+    collapseServicesBtn: $('collapseServicesBtn'),
+    servicesPanel: $('servicesPanel'),
+    ollamaStatus: $('ollamaStatus'),
+    ollamaStatusText: $('ollamaStatusText'),
+    proxyStatus: $('proxyStatus'),
+    proxyStatusText: $('proxyStatusText'),
+    serviceHint: $('serviceHint'),
+    presetsToggle: $('presetsToggle'),
+    presetsMenu: $('presetsMenu'),
+    presetItems: document.querySelectorAll('.preset-item'),
+    shortcutsToggle: $('shortcutsToggle'),
+    shortcutsPanel: $('shortcutsPanel')
+  };
+
+  var servicesStatus = { ollama: false, proxy: false };
+
+  function updateServicesUI() {
+    var ollamaOk = servicesStatus.ollama;
+    var proxyOk = servicesStatus.proxy;
+    
+    elements.ollamaStatus.className = 'status-indicator ' + (ollamaOk ? 'online' : 'offline');
+    elements.ollamaStatusText.textContent = ollamaOk ? 'online' : 'offline';
+    
+    elements.proxyStatus.className = 'status-indicator ' + (proxyOk ? 'online' : 'offline');
+    elements.proxyStatusText.textContent = proxyOk ? 'online' : 'offline';
+    
+    if (ollamaOk && proxyOk) {
+      elements.serviceHint.textContent = 'All services running';
+      elements.serviceHint.style.color = 'var(--figma-green)';
+    } else if (ollamaOk || proxyOk) {
+      elements.serviceHint.textContent = 'Run: ./start-services.sh';
+      elements.serviceHint.style.color = 'var(--figma-orange)';
+    } else {
+      elements.serviceHint.textContent = 'Run: ./start-services.sh';
+      elements.serviceHint.style.color = 'var(--figma-red)';
+    }
+  }
+
+  function checkServices() {
+    elements.ollamaStatus.className = 'status-indicator checking';
+    elements.ollamaStatusText.textContent = 'checking...';
+    elements.proxyStatus.className = 'status-indicator checking';
+    elements.proxyStatusText.textContent = 'checking...';
+    parent.postMessage({ pluginMessage: { type: 'check-services' } }, '*');
+  }
+
+  function runServices() {
+    if (!elements.runServicesBtn) return;
+    elements.runServicesBtn.disabled = true;
+    elements.runServicesBtn.classList.add('running');
+    elements.runServicesBtn.innerHTML = '<span class="spinner" style="width:10px;height:10px;border-width:2px;"></span> Starting...';
+    elements.serviceHint.textContent = 'Starting services...';
+    elements.serviceHint.style.color = 'var(--figma-blue)';
+    
+    parent.postMessage({ pluginMessage: { type: 'run-services' } }, '*');
+  }
+
+  // Update key status display
+  function updateKeyStatus() {
+    var keys = [
+      { input: elements.glmKeyInput, status: elements.glmKeyStatus, value: state.apiKeys.glm },
+      { input: elements.kimiKeyInput, status: elements.kimiKeyStatus, value: state.apiKeys.kimi }
+    ];
+    
+    keys.forEach(function(key) {
+      var isValid = key.value && key.value.length > 5;
+      key.status.textContent = isValid ? '✓ Configured' : 'Not configured';
+      key.status.className = 'key-status ' + (isValid ? 'configured' : 'not-configured');
+      if (isValid) {
+        key.input.classList.add('valid');
+      } else {
+        key.input.classList.remove('valid');
+      }
+    });
+
+    // Update footer status
+    var hasKey;
+    if (state.mode === 'minimax') {
+      hasKey = true; // Ollama doesn't need key
+    } else if (state.mode === 'glm') {
+      hasKey = state.apiKeys.glm && state.apiKeys.glm.length > 5;
+    } else if (state.mode === 'kimi') {
+      hasKey = state.apiKeys.kimi && state.apiKeys.kimi.length > 5;
+    } else {
+      hasKey = false;
+    }
+    elements.statusDot.className = 'status-dot ' + (hasKey ? 'ready' : 'warning');
+  }
+
+  // Status messages
+  function showStatus(msg, type) {
+    var icon = type === 'loading' ? '<span class="spinner"></span>' : 
+               type === 'error' ? '✕' : '✓';
+    elements.statusBox.innerHTML = icon + ' ' + msg;
+    elements.statusBox.className = 'status-box status-' + type;
+    show(elements.statusBox);
+    hide(elements.errorBox);
+  }
+
+  function hideStatus() {
+    hide(elements.statusBox);
+  }
+  
+  function showError(msg) {
+    elements.errorMessage.textContent = msg;
+    show(elements.errorBox);
+    hide(elements.statusBox);
+  }
+  
+  function hideError() {
+    hide(elements.errorBox);
+  }
+
+  // Request keys from plugin on load
+  parent.postMessage({ pluginMessage: { type: 'load-keys' } }, '*');
+  checkServices();
+
+  // Listen for messages from plugin
+  window.onmessage = function(event) {
+    var msg = event.data.pluginMessage;
+    if (!msg) return;
+    
+    console.log('UI received:', msg.type);
+    
+    switch (msg.type) {
+      case 'keys-loaded':
+        if (msg.keys) {
+          state.apiKeys = msg.keys;
+          if (elements.glmKeyInput) elements.glmKeyInput.value = state.apiKeys.glm || '';
+          if (elements.kimiKeyInput) elements.kimiKeyInput.value = state.apiKeys.kimi || '';
+          updateKeyStatus();
+        }
+        break;
+      
+      case 'services-status':
+        if (msg.status) {
+          servicesStatus = msg.status;
+          updateServicesUI();
+        }
+        break;
+        
+      case 'services-started':
+        if (elements.runServicesBtn) {
+          elements.runServicesBtn.disabled = false;
+          elements.runServicesBtn.classList.remove('running');
+          elements.runServicesBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2l10 6-10 6V2z"/></svg> Run: ./start-services.sh';
+        }
+        if (msg.status) {
+          servicesStatus = msg.status;
+          updateServicesUI();
+        }
+        break;
+        
+      case 'services-error':
+        if (elements.runServicesBtn) {
+          elements.runServicesBtn.disabled = false;
+          elements.runServicesBtn.classList.remove('running');
+          elements.runServicesBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2l10 6-10 6V2z"/></svg> Run: ./start-services.sh';
+        }
+        elements.serviceHint.textContent = msg.error || 'Failed to start services';
+        elements.serviceHint.style.color = 'var(--figma-red)';
+        break;
+        
+      case 'keys-saved':
+        elements.saveFeedback.textContent = '✓ Keys saved successfully';
+        elements.saveFeedback.className = 'save-feedback success';
+        show(elements.saveFeedback);
+        updateKeyStatus();
+        setTimeout(function() { hide(elements.settingsModal); }, 800);
+        break;
+        
+      case 'keys-save-error':
+        elements.saveFeedback.textContent = '✕ ' + (msg.error || 'Failed to save');
+        elements.saveFeedback.className = 'save-feedback error';
+        show(elements.saveFeedback);
+        break;
+        
+      case 'progress':
+        showStatus(msg.message + ' (' + msg.progress + '%)', 'loading');
+        break;
+        
+      case 'generation-complete':
+        showStatus('Design created! Check your canvas.', 'success');
+        setTimeout(function() {
+          state.isGenerating = false;
+          elements.generateBtn.disabled = false;
+          elements.generateBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z" fill="currentColor"/></svg> Generate Design';
+          elements.promptInput.value = '';
+          state.prompt = '';
+        }, 500);
+        break;
+        
+      case 'generation-error':
+        showError(msg.error);
+        state.isGenerating = false;
+        elements.generateBtn.disabled = false;
+        elements.generateBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z" fill="currentColor"/></svg> Generate Design';
+        break;
+    }
+  };
+
+  // Prompt input
+  elements.promptInput.oninput = function(e) { 
+    state.prompt = e.target.value; 
+  };
+
+  // Model selection
+  elements.modelBtns.forEach(function(btn) {
+    btn.onclick = function() {
+      elements.modelBtns.forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      state.mode = btn.dataset.mode;
+      
+      var modeNames = { glm: 'GLM-5', kimi: 'Kimi K2.5', minimax: 'MiniMax M2.5' };
+      elements.poweredBy.textContent = modeNames[state.mode] || 'GLM-5';
+      updateKeyStatus();
+    };
+  });
+
+  // Settings modal
+  elements.settingsBtn.onclick = function() {
+    show(elements.settingsModal);
+    hide(elements.saveFeedback);
+  };
+
+  function closeSettings() { 
+    hide(elements.settingsModal); 
+  }
+  
+  elements.closeSettingsBtn.onclick = closeSettings;
+  elements.cancelSettingsBtn.onclick = closeSettings;
+  elements.settingsModal.onclick = function(e) { 
+    if (e.target === elements.settingsModal) closeSettings(); 
+  };
+
+  // Refresh services status
+  if (elements.refreshServicesBtn) {
+    elements.refreshServicesBtn.onclick = function() {
+      checkServices();
+    };
+  }
+
+  // Run services button
+  if (elements.runServicesBtn) {
+    elements.runServicesBtn.onclick = function() {
+      runServices();
+    };
+  }
+  
+  // Collapse services panel
+  if (elements.collapseServicesBtn) {
+    elements.collapseServicesBtn.onclick = function() {
+      elements.servicesPanel.classList.toggle('collapsed');
+    };
+  }
+  
+  // Presets dropdown
+  if (elements.presetsToggle) {
+    elements.presetsToggle.onclick = function(e) {
+      e.stopPropagation();
+      var isOpen = elements.presetsMenu.classList.contains('open');
+      elements.presetsMenu.classList.toggle('open');
+      elements.presetsToggle.setAttribute('aria-expanded', !isOpen);
+    };
+    
+    elements.presetItems.forEach(function(item) {
+      item.onclick = function() {
+        var prompt = item.getAttribute('data-prompt');
+        elements.promptInput.value = prompt;
+        state.prompt = prompt;
+        elements.presetsMenu.classList.remove('open');
+        elements.presetsToggle.setAttribute('aria-expanded', 'false');
+        elements.promptInput.focus();
+      };
+    });
+    
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.presets-dropdown')) {
+        elements.presetsMenu.classList.remove('open');
+        elements.presetsToggle.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+  
+  // Shortcuts panel toggle
+  if (elements.shortcutsToggle) {
+    elements.shortcutsToggle.onclick = function() {
+      elements.shortcutsPanel.classList.toggle('hidden');
+    };
+  }
+  
+  // Error retry
+  if (elements.retryBtn) {
+    elements.retryBtn.onclick = function() {
+      hideError();
+      elements.generateBtn.click();
+    };
+  }
+  
+  if (elements.dismissErrorBtn) {
+    elements.dismissErrorBtn.onclick = function() {
+      hideError();
+    };
+  }
+
+  // Save settings
+  elements.saveSettingsBtn.onclick = function() {
+    var keys = {
+      glm: elements.glmKeyInput.value.trim(),
+      kimi: elements.kimiKeyInput.value.trim()
+    };
+    state.apiKeys = keys;
+    
+    elements.saveFeedback.textContent = 'Saving...';
+    elements.saveFeedback.className = 'save-feedback';
+    elements.saveFeedback.style.background = 'rgba(13, 153, 255, 0.15)';
+    elements.saveFeedback.style.color = '#0d99ff';
+    show(elements.saveFeedback);
+    
+    parent.postMessage({
+      pluginMessage: { type: 'save-keys', keys: keys }
+    }, '*');
+  };
+
+  // Toggle visibility
+  document.querySelectorAll('.toggle-visibility').forEach(function(btn) {
+    btn.onclick = function() {
+      var targetId = btn.getAttribute('data-target');
+      var input = $(targetId);
+      var isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      btn.textContent = isPassword ? 'Hide' : 'Show';
+    };
+  });
+
+  // Generate
+  elements.generateBtn.onclick = function() {
+    if (!state.prompt.trim()) {
+      showError('Please enter a design description');
+      return;
+    }
+    if (state.isGenerating) return;
+
+    // MiniMax doesn't need API key (uses local Ollama)
+    if (state.mode !== 'minimax') {
+      var apiKey = state.apiKeys[state.mode];
+      if (!apiKey || apiKey.length < 5) {
+        showError('Add your ' + (state.mode === 'glm' ? 'GLM-5' : 'Kimi') + ' key in Settings');
+        return;
+      }
+    }
+
+    hideError();
+    state.isGenerating = true;
+    elements.generateBtn.disabled = true;
+    elements.generateBtn.innerHTML = '<span class="spinner"></span> Generating...';
+    showStatus('Starting...', 'loading');
+
+    parent.postMessage({
+      pluginMessage: {
+        type: 'generate-design',
+        prompt: state.prompt,
+        mode: state.mode,
+        apiKey: state.mode === 'minimax' ? 'ollama' : state.apiKeys[state.mode],
+        requestId: Date.now().toString()
+      }
+    }, '*');
+  };
+
+  // Keyboard shortcut
+  elements.promptInput.onkeydown = function(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      elements.generateBtn.click();
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      elements.promptInput.value = '';
+      state.prompt = '';
+    }
+  };
+  
+  // Global keyboard shortcuts
+  document.onkeydown = function(e) {
+    if (e.key === 'Escape') {
+      if (!elements.settingsModal.classList.contains('hidden')) {
+        closeSettings();
+      }
+      if (!elements.shortcutsPanel.classList.contains('hidden')) {
+        elements.shortcutsPanel.classList.add('hidden');
+      }
+      if (elements.presetsMenu && elements.presetsMenu.classList.contains('open')) {
+        elements.presetsMenu.classList.remove('open');
+      }
+      hideError();
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+      e.preventDefault();
+      show(elements.settingsModal);
+    }
+  };
+
+  // Initialize
+  updateKeyStatus();
+  console.log('AI Designer ready');
+})();
+  </script>
+</body>
+</html>
