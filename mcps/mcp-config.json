@@ -1,12 +1,12 @@
 {
   "mcpServers": {
-    "figma-official": {
+    "figma-developer": {
       "command": "npx",
-      "args": ["-y", "@figma/mcp-server"],
+      "args": ["-y", "figma-developer-mcp"],
       "env": {
         "FIGMA_API_KEY": "figd_nw5LS6LoK7taqLFyvLcbXxe2KCtPtjj5KKhOr1mC"
       },
-      "description": "Official Figma MCP - Read-only file access with Dev Mode integration"
+      "description": "Figma Developer MCP - Popular npm package (Framelink)"
     },
     "figma-console": {
       "command": "npx",
@@ -16,7 +16,7 @@
       },
       "description": "Figma Console MCP - 56+ tools, FULL CRUD access via Desktop Bridge"
     },
-    "figma-claude-talk": {
+    "claude-talk-to-figma": {
       "command": "npx",
       "args": ["-y", "arinspunk/claude-talk-to-figma-mcp"],
       "env": {

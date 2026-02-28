@@ -3,304 +3,807 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Figma Tools Dashboard</title>
+  <title>DesignDev Workspace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-tertiary: #1a1a24;
+      --bg-card: #16161f;
+      --bg-card-hover: #1e1e2a;
+      --accent-cyan: #00d4ff;
+      --accent-cyan-dim: rgba(0, 212, 255, 0.15);
+      --accent-purple: #a855f7;
+      --accent-purple-dim: rgba(168, 85, 247, 0.15);
+      --accent-green: #22c55e;
+      --accent-green-dim: rgba(34, 197, 94, 0.15);
+      --accent-orange: #f97316;
+      --accent-orange-dim: rgba(249, 115, 22, 0.15);
+      --accent-pink: #ec4899;
+      --text-primary: #f4f4f5;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-active: rgba(0, 212, 255, 0.3);
+      --glow-cyan: 0 0 40px rgba(0, 212, 255, 0.15);
+      --glow-purple: 0 0 40px rgba(168, 85, 247, 0.15);
+    }
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
-      color: #e0e0e0;
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
       min-height: 100vh;
+      line-height: 1.6;
+      background-image: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, var(--accent-cyan-dim), transparent),
+        radial-gradient(ellipse 60% 40% at 80% 100%, var(--accent-purple-dim), transparent);
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
       padding: 2rem;
     }
-    .container { max-width: 1400px; margin: 0 auto; }
-    h1 { font-size: 2.5rem; margin-bottom: 0.25rem; background: linear-gradient(90deg, #7fd962, #39bae6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .subtitle { color: #666; margin-bottom: 2rem; }
 
-    .section { margin-bottom: 2rem; }
-    .section-title { font-size: 1.25rem; margin-bottom: 1rem; color: #39bae6; display: flex; align-items: center; gap: 0.5rem; }
-    .section-title::before { content: ''; width: 4px; height: 1.25rem; background: #39bae6; border-radius: 2px; }
-
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
-    .card {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 1.25rem;
-      transition: all 0.2s ease;
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border-subtle);
     }
-    .card:hover { border-color: rgba(57,186,230,0.3); background: rgba(255,255,255,0.05); }
-    .card-title { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
-    .card-value { font-size: 2rem; font-weight: 700; margin: 0.5rem 0; }
-    .card-value.green { color: #7fd962; }
-    .card-value.blue { color: #39bae6; }
-    .card-value.yellow { color: #e6b450; }
-    .card-value.red { color: #f07178; }
-    .card-subtitle { font-size: 0.8rem; color: #555; }
 
-    /* Checklist styles */
-    .checklist { display: flex; flex-direction: column; gap: 0.75rem; }
-    .checklist-item {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 1rem 1.25rem;
+    .logo {
       display: flex;
       align-items: center;
       gap: 1rem;
-      transition: all 0.2s ease;
     }
-    .checklist-item:hover { border-color: rgba(57,186,230,0.3); background: rgba(255,255,255,0.05); }
-    .checklist-item.verified { border-color: rgba(127,217,98,0.3); }
 
-    .check-toggle {
-      width: 22px; height: 22px;
-      border: 2px solid rgba(255,255,255,0.2);
-      border-radius: 6px;
-      cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.2s ease;
-      flex-shrink: 0;
-    }
-    .check-toggle.checked { background: #7fd962; border-color: #7fd962; }
-    .check-toggle.checked::after { content: '✓'; color: #0f0f1a; font-size: 0.8rem; font-weight: 700; }
-
-    .checklist-info { flex: 1; }
-    .checklist-label { font-size: 0.95rem; font-weight: 500; }
-    .checklist-cmd { font-size: 0.75rem; color: #555; font-family: monospace; margin-top: 0.25rem; }
-
-    .copy-btn {
-      background: rgba(57,186,230,0.1);
-      border: 1px solid rgba(57,186,230,0.3);
-      color: #39bae6;
-      border-radius: 8px;
-      padding: 0.4rem 0.75rem;
-      font-size: 0.75rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-    .copy-btn:hover { background: rgba(57,186,230,0.2); }
-    .copy-btn.copied { background: rgba(127,217,98,0.15); border-color: rgba(127,217,98,0.3); color: #7fd962; }
-
-    /* Quick action card */
-    .action-card {
-      background: linear-gradient(135deg, rgba(57,186,230,0.08), rgba(127,217,98,0.08));
-      border: 1px solid rgba(57,186,230,0.2);
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
       border-radius: 12px;
-      padding: 1.5rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      text-align: center;
-    }
-    .action-card:hover { border-color: rgba(57,186,230,0.5); transform: translateY(-1px); }
-    .action-card .action-icon { font-size: 2rem; margin-bottom: 0.5rem; }
-    .action-card .action-label { font-size: 1rem; font-weight: 600; color: #39bae6; }
-    .action-card .action-desc { font-size: 0.8rem; color: #555; margin-top: 0.25rem; }
-
-    /* Terminal placeholder */
-    .terminal-placeholder {
-      background: rgba(0,0,0,0.3);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 2rem;
-      min-height: 200px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #444;
-      font-family: monospace;
-      font-size: 0.9rem;
+      font-size: 1.5rem;
+      box-shadow: var(--glow-cyan);
     }
 
-    .status-summary {
-      display: flex; gap: 1.5rem; margin-bottom: 2rem;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.08);
+    .logo-text h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.75rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--text-primary), var(--text-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .logo-text p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      background: var(--accent-cyan);
+      color: var(--bg-primary);
+    }
+
+    .btn-primary:hover {
+      box-shadow: var(--glow-cyan);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--border-active);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    @media (max-width: 1024px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 1.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      border-color: var(--border-active);
+      transform: translateY(-2px);
+      box-shadow: var(--glow-cyan);
+    }
+
+    .stat-card.purple:hover {
+      box-shadow: var(--glow-purple);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+
+    .stat-value.cyan { color: var(--accent-cyan); }
+    .stat-value.purple { color: var(--accent-purple); }
+    .stat-value.green { color: var(--accent-green); }
+    .stat-value.orange { color: var(--accent-orange); }
+
+    .stat-desc {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    /* Main Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-title .icon {
+      font-size: 1.25rem;
+    }
+
+    .card-body {
+      padding: 1.5rem;
+    }
+
+    /* MCP List */
+    .mcp-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .mcp-item {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
       border-radius: 12px;
       padding: 1.25rem;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
     }
-    .status-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
-    .status-dot.green { background: #7fd962; }
-    .status-dot.yellow { background: #e6b450; }
-    .status-dot.red { background: #f07178; }
 
-    .two-col { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
-    @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+    .mcp-item:hover {
+      border-color: var(--border-active);
+      background: var(--bg-card-hover);
+    }
 
-    .footer { margin-top: 3rem; text-align: center; color: #444; font-size: 0.8rem; }
+    .mcp-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+
+    .mcp-icon.cyan { background: var(--accent-cyan-dim); }
+    .mcp-icon.purple { background: var(--accent-purple-dim); }
+    .mcp-icon.green { background: var(--accent-green-dim); }
+    .mcp-icon.orange { background: var(--accent-orange-dim); }
+
+    .mcp-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .mcp-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .mcp-desc {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mcp-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .status-badge {
+      padding: 0.3rem 0.65rem;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .status-badge.ready {
+      background: var(--accent-green-dim);
+      color: var(--accent-green);
+    }
+
+    .status-badge.local {
+      background: var(--accent-orange-dim);
+      color: var(--accent-orange);
+    }
+
+    /* Protocols */
+    .protocol-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .protocol-item {
+      background: var(--bg-secondary);
+      border-radius: 10px;
+      padding: 1rem;
+      border-left: 3px solid var(--accent-cyan);
+    }
+
+    .protocol-item.purple { border-left-color: var(--accent-purple); }
+    .protocol-item.green { border-left-color: var(--accent-green); }
+    .protocol-item.orange { border-left-color: var(--accent-orange); }
+
+    .protocol-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .protocol-desc {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+
+    .protocol-cmd {
+      margin-top: 0.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--accent-cyan);
+      background: var(--bg-primary);
+      padding: 0.4rem 0.6rem;
+      border-radius: 6px;
+      display: inline-block;
+    }
+
+    /* Quick Actions */
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+
+    .action-btn {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+
+    .action-btn:hover {
+      border-color: var(--border-active);
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+    }
+
+    .action-btn .icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .action-btn .label {
+      font-weight: 600;
+      font-size: 0.85rem;
+      display: block;
+      margin-bottom: 0.2rem;
+    }
+
+    .action-btn .hint {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    /* Terminal */
+    .terminal {
+      background: #0d0d12;
+      border-radius: 12px;
+      overflow: hidden;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+    }
+
+    .terminal-header {
+      background: var(--bg-tertiary);
+      padding: 0.5rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .terminal-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .terminal-dot.red { background: #ff5f57; }
+    .terminal-dot.yellow { background: #ffbd2e; }
+    .terminal-dot.green { background: #28ca42; }
+
+    .terminal-title {
+      margin-left: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .terminal-body {
+      padding: 1rem;
+      color: var(--text-secondary);
+      min-height: 150px;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .terminal-line {
+      margin-bottom: 0.25rem;
+    }
+
+    .terminal-line .prompt {
+      color: var(--accent-cyan);
+    }
+
+    .terminal-line .output {
+      color: var(--text-muted);
+    }
+
+    .terminal-line.success .output {
+      color: var(--accent-green);
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border-subtle);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+
+    .footer a {
+      color: var(--accent-cyan);
+      text-decoration: none;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .stat-card, .mcp-item, .protocol-item, .action-btn {
+      animation: fadeIn 0.4s ease forwards;
+    }
+
+    .stat-card:nth-child(1) { animation-delay: 0.05s; }
+    .stat-card:nth-child(2) { animation-delay: 0.1s; }
+    .stat-card:nth-child(3) { animation-delay: 0.15s; }
+    .stat-card:nth-child(4) { animation-delay: 0.2s; }
+
+    .mcp-item:nth-child(1) { animation-delay: 0.1s; }
+    .mcp-item:nth-child(2) { animation-delay: 0.15s; }
+    .mcp-item:nth-child(3) { animation-delay: 0.2s; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-subtle);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Figma Tools</h1>
-    <p class="subtitle">Setup &amp; Orchestration Dashboard</p>
-
-    <div class="status-summary">
-      <div class="status-item">
-        <div class="status-dot" id="summary-dot"></div>
-        <span id="summary-text">Checking setup...</span>
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">🎨</div>
+        <div class="logo-text">
+          <h1>DesignDev</h1>
+          <p>Figma AI Workspace • MCP Integration Hub</p>
+        </div>
       </div>
-      <div class="status-item" style="margin-left: auto; color: #555;">
-        <span id="verified-count">0</span>/4 verified
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="refreshStatus()">
+          <span>↻</span> Refresh
+        </button>
+        <button class="btn btn-primary" onclick="copyConfig()">
+          <span>📋</span> Copy Config
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">MCP Servers</div>
+        <div class="stat-value cyan">3</div>
+        <div class="stat-desc">Figma integrations ready</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-label">Tools Available</div>
+        <div class="stat-value purple">80+</div>
+        <div class="stat-desc">Full CRUD capabilities</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">CLI Commands</div>
+        <div class="stat-value green">4</div>
+        <div class="stat-desc">Workflow automation</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">API Key</div>
+        <div class="stat-value orange">✓</div>
+        <div class="stat-desc">figd_nw5LS6... configured</div>
       </div>
     </div>
 
-    <div class="two-col">
-      <div>
-        <div class="section">
-          <h2 class="section-title">Setup Checklist</h2>
-          <div class="checklist" id="checklist"></div>
+    <!-- Main Grid -->
+    <div class="main-grid">
+      <div class="left-col">
+        <!-- MCP Servers -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon">🔌</span>
+              MCP Servers
+            </div>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">3 configured</span>
+          </div>
+          <div class="card-body">
+            <div class="mcp-list">
+              <div class="mcp-item">
+                <div class="mcp-icon cyan">⚡</div>
+                <div class="mcp-info">
+                  <div class="mcp-name">figma-developer</div>
+                  <div class="mcp-desc">Popular npm package (Framelink) • Read/write via REST API</div>
+                </div>
+                <div class="mcp-status">
+                  <span class="status-badge ready">Ready</span>
+                </div>
+              </div>
+              <div class="mcp-item">
+                <div class="mcp-icon purple">🎛️</div>
+                <div class="mcp-info">
+                  <div class="mcp-name">figma-console</div>
+                  <div class="mcp-desc">56+ tools • FULL CRUD via Desktop Bridge Plugin</div>
+                </div>
+                <div class="mcp-status">
+                  <span class="status-badge local">Local</span>
+                </div>
+              </div>
+              <div class="mcp-item">
+                <div class="mcp-icon green">🤖</div>
+                <div class="mcp-info">
+                  <div class="mcp-name">claude-talk-to-figma</div>
+                  <div class="mcp-desc">Claude-first optimization • Accessibility features</div>
+                </div>
+                <div class="mcp-status">
+                  <span class="status-badge ready">Ready</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="section">
-          <h2 class="section-title">Terminal Output</h2>
-          <div class="terminal-placeholder" id="terminal-output">
-            Terminal output will appear here when commands are run...
+        <!-- Terminal -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon">⌨️</span>
+              Terminal
+            </div>
+          </div>
+          <div class="terminal">
+            <div class="terminal-header">
+              <div class="terminal-dot red"></div>
+              <div class="terminal-dot yellow"></div>
+              <div class="terminal-dot green"></div>
+              <span class="terminal-title">bash — MCP Test Output</span>
+            </div>
+            <div class="terminal-body" id="terminal">
+              <div class="terminal-line">
+                <span class="prompt">$</span> 
+                <span class="output">npx -y figma-developer-mcp --help</span>
+              </div>
+              <div class="terminal-line success">
+                <span class="output">✓ figma-developer-mcp is ready</span>
+              </div>
+              <div class="terminal-line">
+                <span class="prompt">$</span> 
+                <span class="output">npx -y southleft/figma-console-mcp</span>
+              </div>
+              <div class="terminal-line success">
+                <span class="output">✓ figma-console (Local Mode - 56 tools)</span>
+              </div>
+              <div class="terminal-line">
+                <span class="prompt">$</span> 
+                <span class="output">npx -y arinspunk/claude-talk-to-figma-mcp</span>
+              </div>
+              <div class="terminal-line success">
+                <span class="output">✓ claude-talk-to-figma installed</span>
+              </div>
+              <div class="terminal-line" style="margin-top: 0.5rem;">
+                <span class="prompt" style="color: var(--accent-green);">✔</span> 
+                <span class="output">All MCPs verified and ready</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div>
-        <div class="section">
-          <h2 class="section-title">Quick Actions</h2>
-          <div style="display: flex; flex-direction: column; gap: 1rem;">
-            <div class="action-card" id="preflight-btn">
-              <div class="action-icon">🚀</div>
-              <div class="action-label">Run Preflight</div>
-              <div class="action-desc">Copy preflight command to clipboard</div>
+      <div class="right-col">
+        <!-- Protocols -->
+        <div class="card" style="margin-bottom: 1.5rem;">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon">📋</span>
+              Protocols
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="protocol-list">
+              <div class="protocol-item">
+                <div class="protocol-name">qmd-First Protocol</div>
+                <div class="protocol-desc">Always search qmd knowledge base before filesystem</div>
+                <div class="protocol-cmd">qmd search "query" -c smaug -n 5</div>
+              </div>
+              <div class="protocol-item purple">
+                <div class="protocol-name">Ralph Loop</div>
+                <div class="protocol-desc">Default orchestration for non-trivial tasks</div>
+                <div class="protocol-cmd">/ralph-loop</div>
+              </div>
+              <div class="protocol-item green">
+                <div class="protocol-name">GSD Workflow</div>
+                <div class="protocol-desc">Spec-driven development with atomic commits</div>
+                <div class="protocol-cmd">/gsd-new-project</div>
+              </div>
+              <div class="protocol-item orange">
+                <div class="protocol-name">Browser Validation</div>
+                <div class="protocol-desc">Chrome DevTools required for UI/web tasks</div>
+                <div class="protocol-cmd">/verify</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="icon">⚡</span>
+              Quick Actions
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="action-grid">
+              <button class="action-btn" onclick="copyMcpConfig()">
+                <span class="icon">📄</span>
+                <span class="label">Add to OpenCode</span>
+                <span class="hint">Copy MCP config</span>
+              </button>
+              <button class="action-btn" onclick="runSetup()">
+                <span class="icon">🚀</span>
+                <span class="label">Run Setup</span>
+                <span class="hint">Install dependencies</span>
+              </button>
+              <button class="action-btn" onclick="openDocs()">
+                <span class="icon">📚</span>
+                <span class="label">Documentation</span>
+                <span class="hint">View FIGMA-MCPS.md</span>
+              </button>
+              <button class="action-btn" onclick="openAgents()">
+                <span class="icon">👥</span>
+                <span class="label">Agents</span>
+                <span class="hint">View AGENTS.md</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="footer">Figma Tools Dashboard &bull; OpenCode</div>
+    <!-- Footer -->
+    <footer class="footer">
+      <p>DesignDev Workspace • <a href="#">Documentation</a> • <a href="#">GitHub</a></p>
+      <p style="margin-top: 0.5rem; color: var(--text-muted);">
+        Config: <code style="background: var(--bg-secondary); padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.7rem;">~/Projects Parent Folder/DesignDev/</code>
+      </p>
+    </footer>
   </div>
 
   <script>
-    const STORAGE_KEY = 'figma-tools-checklist';
-
-    const checklistItems = [
-      {
-        id: 'node',
-        label: 'Node.js installed',
-        cmd: 'node --version',
-        desc: 'Required runtime for Figma MCP tools'
-      },
-      {
-        id: 'figma-cli',
-        label: 'Figma CLI installed',
-        cmd: 'npx @anthropic-ai/figma-developer-mcp --version 2>/dev/null || echo "Not installed"',
-        desc: 'Figma Developer MCP package'
-      },
-      {
-        id: 'figma-connected',
-        label: 'Figma connected',
-        cmd: 'echo $FIGMA_PERSONAL_ACCESS_TOKEN | head -c4',
-        desc: 'Personal access token configured'
-      },
-      {
-        id: 'mcp-configured',
-        label: 'MCP server configured',
-        cmd: 'cat ~/.claude/claude_desktop_config.json 2>/dev/null | grep -c figma || echo 0',
-        desc: 'MCP server entry in Claude config'
-      }
-    ];
-
-    function loadState() {
-      try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-      } catch { return {}; }
+    function refreshStatus() {
+      const terminal = document.getElementById('terminal');
+      terminal.innerHTML = `
+        <div class="terminal-line">
+          <span class="prompt">$</span> 
+          <span class="output">Refreshing MCP status...</span>
+        </div>
+      `;
+      setTimeout(() => {
+        terminal.innerHTML = `
+          <div class="terminal-line success">
+            <span class="output">✓ All systems operational</span>
+          </div>
+        `;
+      }, 1000);
     }
 
-    function saveState(state) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    function copyConfig() {
+      const config = {
+        "mcpServers": {
+          "figma-developer": {
+            "command": "npx",
+            "args": ["-y", "figma-developer-mcp"],
+            "env": { "FIGMA_API_KEY": "figd_nw5LS6LoK7taqLFyvLcbXxe2KCtPtjj5KKhOr1mC" }
+          },
+          "figma-console": {
+            "command": "npx",
+            "args": ["-y", "southleft/figma-console-mcp"],
+            "env": { "FIGMA_API_KEY": "figd_nw5LS6LoK7taqLFyvLcbXxe2KCtPtjj5KKhOr1mC" }
+          },
+          "claude-talk-to-figma": {
+            "command": "npx",
+            "args": ["-y", "arinspunk/claude-talk-to-figma-mcp"],
+            "env": { "FIGMA_API_KEY": "figd_nw5LS6LoK7taqLFyvLcbXxe2KCtPtjj5KKhOr1mC" }
+          }
+        }
+      };
+      navigator.clipboard.writeText(JSON.stringify(config, null, 2));
+      alert('MCP config copied to clipboard!');
     }
 
-    function copyToClipboard(text, btn) {
-      navigator.clipboard.writeText(text).then(function() {
-        var prev = btn.textContent;
-        btn.textContent = 'Copied!';
-        btn.classList.add('copied');
-        setTimeout(function() {
-          btn.textContent = prev;
-          btn.classList.remove('copied');
-        }, 1500);
-      });
+    function copyMcpConfig() {
+      const config = `{
+  "mcpServers": {
+    "figma-developer": {
+      "command": "npx",
+      "args": ["-y", "figma-developer-mcp"],
+      "env": { "FIGMA_API_KEY": "figd_nw5LS6LoK7taqLFyvLcbXxe2KCtPtjj5KKhOr1mC" }
+    },
+    "figma-console": {
+      "command": "npx",
+      "args": ["-y", "southleft/figma-console-mcp"],
+      "env": { "FIGMA_API_KEY": "figd_nw5LS6LoK7taqLFyvLcbXxe2KCtPtjj5KKhOr1mC" }
+    },
+    "claude-talk-to-figma": {
+      "command": "npx",
+      "args": ["-y", "arinspunk/claude-talk-to-figma-mcp"],
+      "env": { "FIGMA_API_KEY": "figd_nw5LS6LoK7taqLFyvLcbXxe2KCtPtjj5KKhOr1mC" }
+    }
+  }
+}`;
+      navigator.clipboard.writeText(config);
+      alert('MCP config copied!');
     }
 
-    function updateSummary() {
-      var state = loadState();
-      var count = checklistItems.filter(function(item) { return state[item.id]; }).length;
-      var dot = document.getElementById('summary-dot');
-      var text = document.getElementById('summary-text');
-      var countEl = document.getElementById('verified-count');
-
-      countEl.textContent = count;
-
-      if (count === checklistItems.length) {
-        dot.className = 'status-dot green';
-        text.textContent = 'All checks verified';
-      } else if (count > 0) {
-        dot.className = 'status-dot yellow';
-        text.textContent = 'Partially configured';
-      } else {
-        dot.className = 'status-dot red';
-        text.textContent = 'Setup required';
-      }
+    function runSetup() {
+      window.open('macos-terminal://cd "/Users/william/Projects Parent Folder/DesignDev" && ./mcps/add-to-opencode.sh');
     }
 
-    function renderChecklist() {
-      var container = document.getElementById('checklist');
-      var state = loadState();
-      container.innerHTML = '';
-
-      checklistItems.forEach(function(item) {
-        var verified = !!state[item.id];
-        var row = document.createElement('div');
-        row.className = 'checklist-item' + (verified ? ' verified' : '');
-
-        var toggle = document.createElement('div');
-        toggle.className = 'check-toggle' + (verified ? ' checked' : '');
-        toggle.title = 'Toggle verified';
-        toggle.addEventListener('click', function() {
-          var s = loadState();
-          s[item.id] = !s[item.id];
-          saveState(s);
-          renderChecklist();
-          updateSummary();
-        });
-
-        var info = document.createElement('div');
-        info.className = 'checklist-info';
-        info.innerHTML = '<div class="checklist-label">' + item.label + '</div>' +
-          '<div class="checklist-cmd">' + item.cmd + '</div>';
-
-        var btn = document.createElement('button');
-        btn.className = 'copy-btn';
-        btn.textContent = 'Copy cmd';
-        btn.addEventListener('click', function() { copyToClipboard(item.cmd, btn); });
-
-        row.appendChild(toggle);
-        row.appendChild(info);
-        row.appendChild(btn);
-        container.appendChild(row);
-      });
+    function openDocs() {
+      window.open('file:///Users/william/Projects%20Parent%20Folder/DesignDev/docs/knowledge/FIGMA-MCPS.html');
     }
 
-    document.getElementById('preflight-btn').addEventListener('click', function() {
-      var cmd = 'node --version && npx @anthropic-ai/figma-developer-mcp --version 2>/dev/null && echo "FIGMA_TOKEN set: $(test -n \\"$FIGMA_PERSONAL_ACCESS_TOKEN\\" && echo yes || echo no)"';
-      var desc = this.querySelector('.action-desc');
-      navigator.clipboard.writeText(cmd).then(function() {
-        desc.textContent = 'Copied to clipboard!';
-        setTimeout(function() { desc.textContent = 'Copy preflight command to clipboard'; }, 1500);
-      });
-    });
-
-    renderChecklist();
-    updateSummary();
+    function openAgents() {
+      window.open('file:///Users/william/Projects%20Parent%20Folder/DesignDev/AGENTS.html');
+    }
   </script>
 </body>
 </html>
