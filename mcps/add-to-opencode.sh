@@ -15,7 +15,7 @@ mkdir -p "$(dirname "$CONFIG_FILE")"
 # Check if config already exists
 if [ -f "$CONFIG_FILE" ]; then
     echo "Existing config found, backing up..."
-_FILE" "$CONFIG    cp "$CONFIG_FILE.backup.$(date +%s)"
+    cp "$CONFIG_FILE" "$CONFIG_FILE.backup.$(date +%s)"
 fi
 
 # Create the MCP config
