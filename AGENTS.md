@@ -44,7 +44,12 @@ DesignDev/
 │       └── figma-workflow.md # Agent instructions
 │
 ├── mcps/
-│   ├── figma-console/        # Figma Console MCP
+#XT|# ├── mcps/
+#RR|# │   ├── figma-console/        # Figma Console MCP (56+ tools, FULL CRUD)
+#PH|# │   ├── claude-talk-to-figma/  # Claude-first Figma MCP
+#PV|# │   ├── official/             # Official Figma MCP
+#KM|# │   ├── desktop-bridge/       # Desktop Bridge MCP
+#JK|# │   └── shared/               # Shared utilities
 │   ├── desktop-bridge/       # Desktop Bridge MCP
 │   └── shared/               # Shared utilities
 │
@@ -119,7 +124,65 @@ cd plugins/desktop-bridge
 # Figma Console MCP
 cd mcps/figma-console
 npm run dev
-```
+#TQ|```
+#QM|## MCP Servers
+#VB|
+#BQ|DesignDev includes 3 Figma MCP servers for full design workflow integration:
+#BV|
+#BB|### figma-console (`mcps/figma-console/`)
+#HV|
+#HV|**56+ tools, FULL CRUD access** via Desktop Bridge Plugin.
+#SB|
+#BS|**Features:**
+#XZ|- Read/write Figma files
+#JB|- Variables and design tokens management
+#XZ|- Component creation and modification
+#JB|- Real-time bidirectional communication
+#BV|
+#BQ|**Setup:**
+#BV|```bash
+#BV|cd mcps/figma-console
+#BV|npm install
+#BV|# Install Desktop Bridge Plugin in Figma
+#BV|```
+#BT|
+#BK|### claude-talk-to-figma (`mcps/claude-talk-to-figma/`)
+#PQ|
+#BC|Claude-first optimization with accessibility features.
+#BS|
+#XB|**Features:**
+#BS|- Optimized for Claude AI interactions
+#XB|- Accessibility linting and audit tools
+#BS|- Semantic variable extraction
+#BV|
+#BQ|**Setup:**
+#BV|```bash
+#BV|cd mcps/claude-talk-to-figma
+#BV|npm install
+#BV|```
+#BS|
+#MM|### Official Figma MCP (`mcps/official/`)
+#QM|
+#QM|Official Figma MCP server with Dev Mode integration.
+#BV|
+#BM|**Features:**
+#MM|- Read-only file access
+#BN|- Dev Mode and Code Connect
+#BM|- Style extraction
+#BK|
+#BQ|**Setup:**
+#BV|```bash
+#BV|cd mcps/official
+#BV|npm install
+#BV|```
+#BQ|
+#QM|### Quick Add to OpenCode
+#BV|
+#BV|```bash
+#BV|./mcps/add-to-opencode.sh
+#BV|```
+#BQ|
+#QM|---
 
 ---
 

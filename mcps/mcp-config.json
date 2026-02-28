@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "figma-official": {
+      "command": "npx",
+      "args": ["-y", "@figma/mcp-server"],
+      "env": {
+        "FIGMA_API_KEY": "figd_nw5LS6LoK7taqLFyvLcbXxe2KCtPtjj5KKhOr1mC"
+      },
+      "description": "Official Figma MCP - Read-only file access with Dev Mode integration"
+    },
+    "figma-console": {
+      "command": "npx",
+      "args": ["-y", "southleft/figma-console-mcp"],
+      "env": {
+        "FIGMA_API_KEY": "figd_nw5LS6LoK7taqLFyvLcbXxe2KCtPtjj5KKhOr1mC"
+      },
+      "description": "Figma Console MCP - 56+ tools, FULL CRUD access via Desktop Bridge"
+    },
+    "figma-claude-talk": {
+      "command": "npx",
+      "args": ["-y", "arinspunk/claude-talk-to-figma-mcp"],
+      "env": {
+        "FIGMA_API_KEY": "figd_nw5LS6LoK7taqLFyvLcbXxe2KCtPtjj5KKhOr1mC"
+      },
+      "description": "Claude Talk to Figma - Claude-first optimization with accessibility features"
+    }
+  }
+}
