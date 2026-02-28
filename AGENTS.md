@@ -78,6 +78,8 @@ DesignDev/
 │   ├── ui-ux-pro-max/        # Design intelligence
 │   └── will-designer/        # Designer agent
 │
+├── services/               # Backend services
+│   └── design-converter/  # Design format converter (Figma/Paper/Pencil)
 └── dashboards/
     └── figma-tools.html      # Status dashboard
 ```
@@ -332,3 +334,145 @@ All CLI tools use consistent exit codes:
 ## License
 
 MIT
+
+## Design Converter — Documentation Rule
+
+**Whenever any file inside `services/design-converter/` is modified, update BOTH HTML references:**
+1. `services/design-converter/docs/UNNODE_DEEP_DIVE.html` — standalone reference
+2. `dashboards/figma-tools.html` (IR Reference tab) — same sections, same content
+
+This is a standing rule for all agents and sessions.
+
+What triggers an HTML update and which sections to touch:
+
+| Change type | Sections to update |
+|-------------|-------------------|
+| New `UNNode` field | §2 deep dive, Appendix B field reference |
+| New or changed enum | §2 deep dive, Appendix C enum reference |
+| New factory function | §2.10 factory helpers |
+| `un_node_to_dict` / `un_node_from_dict` changes | §2.11 serialisation |
+| Adapter bug fix or new feature | §7 roadmap (mark phase complete), §8 guide |
+| Gap closed (G1–G10) | §6 gap analysis, §7 roadmap |
+| New CLI flag on `converter.py` | §8 implementation guide |
+| New adapter (new design tool) | §1 executive summary, §4 competitive landscape, §8 adapter pattern |
+
+Edit only the sections relevant to the change. Keep the changelog table (Appendix D) updated.
+
+---
+
+## Design Converter Service
+
+### Overview
+
+The **design-converter** service (`services/design-converter/`) provides a unified translation layer that converts designs between Figma, Paper Design, and Pencil.dev using a common Intermediate Representation (UNNode tree).
+
+**Architecture:**
+```
+Figma ←→ UNNode (IR) ←→ Paper
+         ↕
+      Pencil
+```
+
+### Structure
+
+```
+services/design-converter/
+├── ir/                    # Intermediate Representation
+│   ├── __init__.py
+│   └── nodes.py           # UNNode, NodeType, UNColor, UNTextStyle
+│
+├── adapters/             # Design tool adapters
+│   ├── base.py           # BaseReader, BaseWriter interfaces
+│   ├── figma/           # Figma adapter
+│   │   ├── client.py     # FigmaClient (REST API)
+│   │   ├── reader.py     # FigmaReader (Figma → UNNode)
+│   │   └── writer.py     # FigmaWriter (UNNode → Figma) [TODO]
+│   ├── paper/           # Paper adapter
+│   │   ├── client.py     # PaperClient (MCP JSON-RPC)
+│   │   ├── reader.py     # PaperReader (JSX → UNNode)
+│   │   └── writer.py     # PaperWriter (UNNode → HTML)
+│   └── pencil/          # Pencil adapter
+│       ├── client.py     # PencilClient (HTTP REST)
+│       ├── reader.py    # PencilReader (Pencil → UNNode)
+│       └── writer.py     # PencilWriter (UNNode → Pencil)
+│
+└── utils/               # Shared utilities
+    ├── color.py         # Color conversion (hex, rgb, hsl, Figma)
+    ├── css.py          # CSS generation utilities
+    ├── svg.py           # SVG parsing utilities
+    └── jsx_parser.py   # JSX/React parsing utilities
+```
+
+### Intermediate Representation (UNNode)
+
+The IR is defined in `ir/nodes.py`:
+
+- **UNNode** - Core node with type, children, style properties
+- **NodeType** - Enum of supported node types (FRAME, TEXT, RECTANGLE, ELLIPSE, etc.)
+- **UNColor** - Color with r, g, b, a channels
+- **UNTextStyle** - Text properties (fontFamily, fontSize, fontWeight, etc.)
+- **UNLayout** - Layout properties (flexDirection, justifyContent, alignItems, etc.)
+
+### Adapters
+
+Each adapter follows the same interface pattern:
+
+**BaseReader** - Read from design tool → UNNode tree
+```python
+from adapters.base import BaseReader
+
+class FigmaReader(BaseReader):
+    tool_name = "figma"
+    
+    def read_node(self, file_key: str, node_id: str = "") -> UNNode:
+        # Calls FigmaClient.get_file() or get_file_nodes()
+        # Converts via _figma_node_to_unnode() recursive function
+```
+
+**BaseWriter** - Write UNNode tree → design tool
+```python
+from adapters.base import BaseWriter
+
+class FigmaWriter(BaseWriter):
+    tool_name = "figma"
+    
+    def write_node(self, unnode: UNNode, file_key: str, parent_id: str = "") -> str:
+        # Converts UNNode → Figma API JSON
+        # Uses FigmaClient for REST API calls
+```
+
+### MCP Connections
+
+- **Paper Design MCP**: `http://127.0.0.1:29979` (HTTP JSON-RPC)
+- **Pencil.dev MCP**: HTTP mode (`--http --http-port 8080`)
+- **Figma**: REST API + Desktop Bridge MCP
+
+### Usage
+
+```python
+# Convert Figma to Paper
+from adapters.figma import FigmaReader
+from adapters.paper import PaperWriter
+
+figma_reader = FigmaReader()
+paper_writer = PaperWriter()
+
+# Read from Figma
+unnode_tree = figma_reader.read_node(file_key="abc123", node_id="")
+
+# Write to Paper
+paper_writer.write_node(unnode_tree, output_path="./output")
+```
+
+### Current Status
+
+| Component | Status |
+|-----------|--------|
+| IR (nodes.py) | ✅ Complete |
+| Base Adapter Interface | ✅ Complete |
+| Paper Adapter | ✅ Complete |
+| Pencil Adapter | ✅ Complete |
+| Figma Reader | ✅ Complete |
+| Figma Writer | ✅ Complete |
+| Main Converter (`converter.py`) | ✅ Complete |
+| CLI Integration (`cli/bin/design-convert.sh`) | ✅ Complete |
