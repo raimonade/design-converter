@@ -6,8 +6,8 @@
 
 console.log('🌉 [Desktop Bridge] Plugin loaded and ready');
 
-// Show minimal UI - compact status indicator
-figma.showUI(__html__, { width: 120, height: 36, visible: true, themeColors: true });
+// Show UI - larger default size with resize support
+figma.showUI(__html__, { width: 400, height: 500, visible: true, themeColors: true });
 
 // ============================================================================
 // CONSOLE CAPTURE — Intercept console.* in the QuickJS sandbox and forward
@@ -2006,12 +2006,39 @@ figma.ui.onmessage = async (msg) => {
       });
       // Short delay to let the response message be sent before reload
       setTimeout(function() {
-        figma.showUI(__html__, { width: 120, height: 36, visible: true, themeColors: true });
+        figma.showUI(__html__, { width: 400, height: 500, visible: true, themeColors: true });
       }, 100);
     } catch (error) {
       var errorMsg = error && error.message ? error.message : String(error);
       figma.ui.postMessage({
         type: 'RELOAD_UI_RESULT',
+        requestId: msg.requestId,
+        success: false,
+        error: errorMsg
+      });
+    }
+  }
+
+  // ============================================================================
+  // RESIZE_UI - Resize the plugin UI window
+  // ============================================================================
+  else if (msg.type === 'RESIZE_UI') {
+    try {
+      var width = Math.max(300, Math.min(800, msg.width || 400));
+      var height = Math.max(300, Math.min(800, msg.height || 500));
+      console.log('🌉 [Desktop Bridge] Resizing UI to:', width, 'x', height);
+      figma.ui.resize(width, height);
+      figma.ui.postMessage({
+        type: 'RESIZE_UI_RESULT',
+        requestId: msg.requestId,
+        success: true,
+        width: width,
+        height: height
+      });
+    } catch (error) {
+      var errorMsg = error && error.message ? error.message : String(error);
+      figma.ui.postMessage({
+        type: 'RESIZE_UI_RESULT',
         requestId: msg.requestId,
         success: false,
         error: errorMsg
