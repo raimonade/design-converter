@@ -22,6 +22,7 @@
       --error: #f24822;
       --warning: #f5a623;
       --info: #0d99ff;
+      --tooltip-bg: #1a1a1a;
     }
 
     html, body {
@@ -39,6 +40,75 @@
       user-select: none;
       min-width: 280px;
       min-height: 350px;
+    }
+
+    /* Tooltip Styles */
+    [data-tooltip] {
+      position: relative;
+    }
+
+    [data-tooltip]::before,
+    [data-tooltip]::after {
+      position: absolute;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.15s ease, visibility 0.15s ease;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    [data-tooltip]::before {
+      content: attr(data-tooltip);
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--tooltip-bg);
+      color: var(--text-primary);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 400;
+      white-space: nowrap;
+      max-width: 200px;
+      white-space: normal;
+      text-align: center;
+      line-height: 1.4;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    [data-tooltip]::after {
+      content: '';
+      bottom: calc(100% + 1px);
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: var(--tooltip-bg);
+    }
+
+    [data-tooltip]:hover::before,
+    [data-tooltip]:hover::after {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Tooltip variations */
+    [data-tooltip][data-tooltip-pos="left"]::before {
+      bottom: auto;
+      left: auto;
+      right: calc(100% + 8px);
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    [data-tooltip][data-tooltip-pos="left"]::after {
+      bottom: auto;
+      left: auto;
+      right: calc(100% + 1px);
+      top: 50%;
+      transform: translateY(-50%);
+      border: 5px solid transparent;
+      border-left-color: var(--tooltip-bg);
     }
 
     /* Header */
@@ -97,6 +167,7 @@
       height: 8px;
       border-radius: 50%;
       flex-shrink: 0;
+      cursor: help;
     }
 
     .status-indicator.loading {
@@ -148,6 +219,11 @@
       border-radius: 3px;
       font-size: 10px;
       cursor: pointer;
+      transition: border-color 0.15s ease;
+    }
+
+    .port-select:hover {
+      border-color: var(--accent);
     }
 
     .port-select:focus {
@@ -167,11 +243,12 @@
       white-space: nowrap;
     }
 
-    .btn:hover {
+    .btn:hover:not(:disabled) {
       background: var(--border-color);
+      border-color: var(--text-muted);
     }
 
-    .btn:active {
+    .btn:active:not(:disabled) {
       transform: scale(0.98);
     }
 
@@ -181,7 +258,7 @@
       color: white;
     }
 
-    .btn-primary:hover {
+    .btn-primary:hover:not(:disabled) {
       background: var(--accent-hover);
       border-color: var(--accent-hover);
     }
@@ -189,6 +266,11 @@
     .btn-sm {
       padding: 3px 6px;
       font-size: 9px;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
 
     /* Actions Section */
@@ -229,13 +311,14 @@
       transition: all 0.15s ease;
     }
 
-    .action-btn:hover {
+    .action-btn:hover:not(:disabled) {
       background: var(--bg-tertiary);
       border-color: var(--accent);
+      transform: translateY(-1px);
     }
 
-    .action-btn:active {
-      transform: scale(0.98);
+    .action-btn:active:not(:disabled) {
+      transform: translateY(0) scale(0.98);
     }
 
     .action-btn:disabled {
@@ -248,12 +331,13 @@
     }
 
     .action-btn.danger {
-      border-color: var(--error);
+      border-color: rgba(242, 72, 34, 0.5);
       color: var(--error);
     }
 
-    .action-btn.danger:hover {
+    .action-btn.danger:hover:not(:disabled) {
       background: var(--error);
+      border-color: var(--error);
       color: white;
     }
 
@@ -373,6 +457,7 @@
       display: flex;
       align-items: center;
       gap: 3px;
+      cursor: help;
     }
 
     .stat-value {
@@ -390,6 +475,7 @@
       cursor: nwse-resize;
       background: linear-gradient(135deg, transparent 50%, var(--border-color) 50%, var(--border-color) 60%, transparent 60%, transparent 70%, var(--border-color) 70%, var(--border-color) 80%, transparent 80%);
       z-index: 100;
+      transition: background 0.15s ease;
     }
 
     .resize-handle:hover {
@@ -428,6 +514,7 @@
         --text-primary: #1a1a1a;
         --text-secondary: #666666;
         --text-muted: #999999;
+        --tooltip-bg: #333;
       }
     }
 
@@ -467,9 +554,9 @@
   <div class="header">
     <div class="header-left">
       <span class="logo">Desktop Bridge</span>
-      <span class="version">v1.4.0</span>
+      <span class="version" data-tooltip="MCP Bridge Plugin Version">v1.4.0</span>
     </div>
-    <div class="status-indicator disconnected" id="main-status"></div>
+    <div class="status-indicator disconnected" id="main-status" data-tooltip="Connection status: Green = Connected, Yellow = Connecting, Red = Error, Gray = Disconnected"></div>
   </div>
 
   <!-- Connection Section -->
@@ -477,7 +564,7 @@
     <div class="connection-row">
       <span class="status-label">Status:</span>
       <span class="status-value" id="connection-status">Disconnected</span>
-      <select class="port-select" id="port-select">
+      <select class="port-select" id="port-select" data-tooltip="Select which port to connect to. Bridge server runs on 9223-9232">
         <option value="9223">:9223</option>
         <option value="9224">:9224</option>
         <option value="9225">:9225</option>
@@ -489,12 +576,12 @@
         <option value="9231">:9231</option>
         <option value="9232">:9232</option>
       </select>
-      <button class="btn btn-sm" id="scan-btn">Scan</button>
-      <button class="btn btn-sm btn-primary" id="connect-btn">Connect</button>
+      <button class="btn btn-sm" id="scan-btn" data-tooltip="Scan ports 9223-9232 to find running MCP servers">Scan</button>
+      <button class="btn btn-sm btn-primary" id="connect-btn" data-tooltip="Connect to the MCP bridge server to enable Figma API access">Connect</button>
     </div>
     <div class="connection-row">
       <span class="status-label">Server:</span>
-      <span class="status-value" id="server-info">Not connected</span>
+      <span class="status-value" id="server-info" data-tooltip="Current server connection info">Not connected</span>
     </div>
   </div>
 
@@ -502,27 +589,27 @@
   <div class="actions-section">
     <div class="section-title">Quick Actions</div>
     <div class="actions-grid">
-      <button class="action-btn" id="btn-execute" disabled title="Execute code from input">
+      <button class="action-btn" id="btn-execute" disabled data-tooltip="Execute the code from the input area below in Figma's plugin sandbox">
         <span class="icon">▶</span>
         <span>Run Code</span>
       </button>
-      <button class="action-btn" id="btn-refresh" disabled title="Refresh design variables">
+      <button class="action-btn" id="btn-refresh" disabled data-tooltip="Refresh and reload all Figma variables (colors, spacing, typography)">
         <span class="icon">↻</span>
         <span>Variables</span>
       </button>
-      <button class="action-btn" id="btn-components" disabled title="Get local components">
+      <button class="action-btn" id="btn-components" disabled data-tooltip="Get a list of all local components in the current Figma file">
         <span class="icon">◇</span>
         <span>Components</span>
       </button>
-      <button class="action-btn" id="btn-screenshot" disabled title="Capture screenshot">
+      <button class="action-btn" id="btn-screenshot" disabled data-tooltip="Capture a screenshot of the current Figma selection">
         <span class="icon">◉</span>
         <span>Screenshot</span>
       </button>
-      <button class="action-btn" id="btn-clear" title="Clear activity log">
+      <button class="action-btn" id="btn-clear" data-tooltip="Clear all activity log entries below">
         <span class="icon">⌫</span>
         <span>Clear Log</span>
       </button>
-      <button class="action-btn danger" id="btn-disconnect" disabled title="Disconnect from server">
+      <button class="action-btn danger" id="btn-disconnect" disabled data-tooltip="Disconnect from the MCP bridge server">
         <span class="icon">✕</span>
         <span>Disconnect</span>
       </button>
@@ -532,8 +619,8 @@
   <!-- Code Input Section -->
   <div class="code-section">
     <div class="code-header">
-      <span class="section-title">Code Input</span>
-      <button class="btn btn-sm btn-primary" id="btn-run-code" disabled>Run</button>
+      <span class="section-title" data-tooltip="Enter Figma Plugin API JavaScript code here">Code Input</span>
+      <button class="btn btn-sm btn-primary" id="btn-run-code" disabled data-tooltip="Execute the code in Figma (Ctrl/Cmd+Enter)">Run</button>
     </div>
     <textarea class="code-input" id="code-input" placeholder="// Figma Plugin API code
 // Example:
@@ -547,33 +634,33 @@ return { id: frame.id };"></textarea>
   <!-- Logs Section -->
   <div class="logs-section">
     <div class="logs-header">
-      <span class="section-title">Activity</span>
+      <span class="section-title" data-tooltip="Activity log showing all operations and their results">Activity</span>
     </div>
     <div class="logs-content" id="logs-content"></div>
   </div>
 
   <!-- Stats Bar -->
   <div class="stats-bar">
-    <div class="stat-item">
+    <div class="stat-item" data-tooltip="Number of design variables loaded from Figma">
       <span>Vars:</span>
       <span class="stat-value" id="stat-variables">0</span>
     </div>
-    <div class="stat-item">
+    <div class="stat-item" data-tooltip="Total number of requests sent to Figma">
       <span>Reqs:</span>
       <span class="stat-value" id="stat-requests">0</span>
     </div>
-    <div class="stat-item">
+    <div class="stat-item" data-tooltip="Time since connection was established">
       <span>Up:</span>
       <span class="stat-value" id="stat-uptime">--</span>
     </div>
-    <div class="stat-item" id="size-display">
+    <div class="stat-item" data-tooltip="Current plugin window size (drag corner to resize)" id="size-display">
       <span>Size:</span>
       <span class="stat-value" id="stat-size">400×500</span>
     </div>
   </div>
 
   <!-- Resize Handle -->
-  <div class="resize-handle" id="resize-handle"></div>
+  <div class="resize-handle" id="resize-handle" data-tooltip="Drag to resize the plugin window" data-tooltip-pos="left"></div>
 
   <!-- Size Indicator -->
   <div class="size-indicator" id="size-indicator">400 × 500</div>
@@ -617,7 +704,7 @@ return { id: frame.id };"></textarea>
       logsContent.appendChild(entry);
       logsContent.scrollTop = logsContent.scrollHeight;
 
-      while (logsContent.children.length > 50) {
+      while (logsContent.children.length > 100) {
         logsContent.removeChild(logsContent.firstChild);
       }
     }
@@ -666,7 +753,7 @@ return { id: frame.id };"></textarea>
         connectBtn.disabled = true;
       } else if (state === 'error') {
         connectionStatus.textContent = 'Error';
-        serverInfo.textContent = 'Failed';
+        serverInfo.textContent = 'Connection failed';
         connectBtn.textContent = 'Retry';
         connectBtn.disabled = false;
         disconnectBtn.disabled = true;
@@ -800,11 +887,16 @@ return { id: frame.id };"></textarea>
 
         if (foundPorts.length > 0) {
           var conn = foundPorts[0];
-          log('Connected to port ' + conn.port, 'success');
+          log('✓ Connected to localhost:' + conn.port, 'success');
           attachWsHandlers(conn.ws, conn.port);
           updateConnectionUI('connected', conn.port);
+
+          // Request variables on connect
+          setTimeout(function() {
+            sendPluginCommand('REFRESH_VARIABLES', {});
+          }, 500);
         } else {
-          log('No server found. Start bridge_server.py', 'error');
+          log('✗ No server found. Run: python bridge_server.py', 'error');
           updateConnectionUI('error');
         }
       }
@@ -823,13 +915,13 @@ return { id: frame.id };"></textarea>
       };
 
       ws.onclose = function() {
-        log('Disconnected from :' + port, 'error');
+        log('✗ Disconnected from :' + port, 'error');
         updateConnectionUI('disconnected');
         activeConnections = activeConnections.filter(function(c) { return c.port !== port; });
       };
 
-      ws.onerror = function() {
-        log('WS error on :' + port, 'error');
+      ws.onerror = function(err) {
+        log('✗ WebSocket error on :' + port, 'error');
       };
 
       activeConnections.push({ ws: ws, port: port });
@@ -842,17 +934,17 @@ return { id: frame.id };"></textarea>
         updateStats();
         var count = 0;
         if (message.data && message.data.variables) count = message.data.variables.length;
-        log(count + ' variables loaded', 'success');
+        log('✓ Loaded ' + count + ' design variables', 'success');
       } else if (message.id) {
         const request = window.__figmaPendingRequests.get(message.id);
         if (request) {
           if (request.timeoutId) clearTimeout(request.timeoutId);
           if (message.error) {
             request.reject(new Error(message.error));
-            log('Failed: ' + message.error, 'error');
+            log('✗ ' + request.type + ': ' + message.error, 'error');
           } else {
             request.resolve(message.result || message);
-            log('Done: ' + request.type, 'success');
+            log('✓ ' + request.type + ' completed', 'success');
           }
           window.__figmaPendingRequests.delete(message.id);
         }
@@ -870,7 +962,7 @@ return { id: frame.id };"></textarea>
         const id = 'req_' + (++requestIdCounter) + '_' + Date.now();
         const timeout = setTimeout(function() {
           window.__figmaPendingRequests.delete(id);
-          reject(new Error('Timeout'));
+          reject(new Error('Request timed out after 30s'));
         }, 30000);
 
         window.__figmaPendingRequests.set(id, { resolve: resolve, reject: reject, timeoutId: timeout, type: method });
@@ -887,14 +979,14 @@ return { id: frame.id };"></textarea>
     // PLUGIN COMMAND INFRASTRUCTURE
     // ============================================================================
     window.sendPluginCommand = function(type, params, timeoutMs) {
-      timeoutMs = timeoutMs || 15000;
+      timeoutMs = timeoutMs || 30000;
       return new Promise(function(resolve, reject) {
         const requestId = type.toLowerCase() + '_' + (++requestIdCounter) + '_' + Date.now();
 
         const timeoutId = setTimeout(function() {
           if (window.__figmaPendingRequests.has(requestId)) {
             window.__figmaPendingRequests.delete(requestId);
-            reject(new Error(type + ' timeout'));
+            reject(new Error(type + ' timed out'));
           }
         }, timeoutMs);
 
@@ -917,7 +1009,7 @@ return { id: frame.id };"></textarea>
     // COMMAND WRAPPERS
     // ============================================================================
     window.executeCode = function(code, timeout) {
-      return sendToWs('EXECUTE_CODE', { code: code, timeout: timeout || 30000 });
+      return sendToWs('EXECUTE_CODE', { code: code, timeout: timeout || 60000 });
     };
 
     window.refreshVariables = function() {
@@ -944,59 +1036,68 @@ return { id: frame.id };"></textarea>
       });
       activeConnections = [];
       updateConnectionUI('disconnected');
-      log('Disconnected', 'info');
+      log('Disconnected from server', 'info');
     });
 
     document.getElementById('btn-execute').addEventListener('click', function() {
       const code = document.getElementById('code-input').value.trim();
       if (code) {
+        log('Executing code...', 'info');
         executeCode(code).then(function(result) {
-          var preview = JSON.stringify(result).substring(0, 80);
-          log('Result: ' + preview + '...', 'success');
+          var preview = JSON.stringify(result, null, 2);
+          if (preview.length > 200) preview = preview.substring(0, 200) + '...';
+          log('✓ Result:\n' + preview, 'success');
         }).catch(function(err) {
-          log('Error: ' + err.message, 'error');
+          log('✗ Error: ' + err.message, 'error');
         });
+      } else {
+        log('⚠ Enter code in the input area first', 'error');
       }
     });
 
     document.getElementById('btn-refresh').addEventListener('click', function() {
-      refreshVariables().then(function() {
-        log('Variables refreshed', 'success');
+      log('Refreshing variables...', 'info');
+      refreshVariables().then(function(result) {
+        log('✓ Variables refreshed', 'success');
       }).catch(function(err) {
-        log('Error: ' + err.message, 'error');
+        log('✗ Refresh failed: ' + err.message, 'error');
       });
     });
 
     document.getElementById('btn-components').addEventListener('click', function() {
+      log('Fetching components...', 'info');
       getLocalComponents().then(function(result) {
         var count = 0;
         if (result && result.components) count = result.components.length;
-        log(count + ' components', 'success');
+        log('✓ Found ' + count + ' local components', 'success');
       }).catch(function(err) {
-        log('Error: ' + err.message, 'error');
+        log('✗ Failed: ' + err.message, 'error');
       });
     });
 
     document.getElementById('btn-screenshot').addEventListener('click', function() {
-      captureScreenshot().then(function() {
-        log('Screenshot captured', 'success');
+      log('Capturing screenshot...', 'info');
+      captureScreenshot().then(function(result) {
+        log('✓ Screenshot captured (' + (result.image ? result.image.length : 0) + ' bytes)', 'success');
       }).catch(function(err) {
-        log('Error: ' + err.message, 'error');
+        log('✗ Screenshot failed: ' + err.message, 'error');
       });
     });
 
     document.getElementById('btn-clear').addEventListener('click', clearLogs);
 
     document.getElementById('btn-run-code').addEventListener('click', function() {
-      const code = document.getElementById('code-input').value.trim();
-      if (code) {
-        log('Executing code...', 'info');
-        executeCode(code).then(function(result) {
-          var preview = JSON.stringify(result, null, 2).substring(0, 150);
-          log('✓ ' + preview + '...', 'success');
-        }).catch(function(err) {
-          log('✗ ' + err.message, 'error');
-        });
+      document.getElementById('btn-execute').click();
+    });
+
+    // Keyboard shortcut for running code
+    document.addEventListener('keydown', function(e) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        const code = document.getElementById('code-input').value.trim();
+        if (code && activeConnections.length > 0) {
+          document.getElementById('btn-execute').click();
+          e.preventDefault();
+        }
       }
     });
 
@@ -1016,10 +1117,8 @@ return { id: frame.id };"></textarea>
             if (dataKey && msg[dataKey] !== undefined) result[dataKey] = msg[dataKey];
             if (msg.data !== undefined) result.data = msg.data;
             request.resolve(result);
-            log('✓ ' + resultType, 'success');
           } else {
             request.reject(new Error(msg.error || 'Unknown error'));
-            log('✗ ' + resultType + ': ' + msg.error, 'error');
           }
           window.__figmaPendingRequests.delete(msg.requestId);
         }
@@ -1031,31 +1130,31 @@ return { id: frame.id };"></textarea>
         updateStats();
         var count = 0;
         if (msg.data && msg.data.variables) count = msg.data.variables.length;
-        log(count + ' vars loaded', 'success');
+        log('✓ Loaded ' + count + ' design variables', 'success');
       } else if (msg.type === 'EXECUTE_CODE_RESULT') {
-        handleResult('Execute', 'result');
+        handleResult('Execute Code', 'result');
       } else if (msg.type === 'REFRESH_VARIABLES_RESULT') {
-        handleResult('Refresh', null);
+        handleResult('Refresh Variables', null);
       } else if (msg.type === 'GET_LOCAL_COMPONENTS_RESULT') {
-        handleResult('Components', null);
+        handleResult('Get Components', null);
       } else if (msg.type === 'CAPTURE_SCREENSHOT_RESULT') {
         handleResult('Screenshot', 'image');
       } else if (msg.type === 'RESIZE_UI_RESULT') {
         if (msg.success) {
-          log('Resized to ' + msg.width + '×' + msg.height, 'success');
+          log('✓ Window resized to ' + msg.width + '×' + msg.height, 'success');
         } else {
-          log('Resize failed: ' + msg.error, 'error');
+          log('✗ Resize failed: ' + msg.error, 'error');
         }
       } else if (msg.type === 'ERROR') {
-        log('Plugin error: ' + msg.error, 'error');
+        log('✗ Plugin error: ' + msg.error, 'error');
       }
     };
 
     // ============================================================================
     // INITIALIZATION
     // ============================================================================
-    log('Desktop Bridge ready', 'info');
-    log('Click Connect to find MCP server', 'info');
+    log('🚀 Desktop Bridge v1.4.0 initialized', 'info');
+    log('💡 Click "Connect" to find and connect to MCP server', 'info');
     updateStats();
     updateSizeDisplay(400, 500);
   </script>
