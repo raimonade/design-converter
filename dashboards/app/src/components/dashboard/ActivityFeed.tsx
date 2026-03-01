@@ -21,10 +21,10 @@ interface ActivityItem {
 
 const activities: ActivityItem[] = [
   { icon: CheckCircleIcon, message: 'All 5 MCP servers connected', time: 'Just now', status: 'success' },
-  { icon: BeakerIcon, message: '146 tests passing across all adapters', time: '2m ago', status: 'success' },
-  { icon: SignalIcon, message: 'Bridge WebSocket active on port 9223', time: '5m ago', status: 'success' },
-  { icon: CodeBracketIcon, message: 'IR: 15 dataclasses, 13 enums loaded', time: '8m ago', status: 'info' },
-  { icon: BoltIcon, message: 'Last smoke test: all endpoints OK', time: '15m ago', status: 'success' },
+  { icon: BeakerIcon, message: '280 tests passing (8 test files)', time: '2m ago', status: 'success' },
+  { icon: CodeBracketIcon, message: 'Paper→Figma: Tailwind parser + layout fixes', time: '5m ago', status: 'info' },
+  { icon: SignalIcon, message: 'Bridge WebSocket active on port 9223', time: '8m ago', status: 'success' },
+  { icon: BoltIcon, message: 'Design converter v1.3.0 verified', time: '15m ago', status: 'success' },
 ];
 
 const statusColors: Record<string, string> = {

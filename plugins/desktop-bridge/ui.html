@@ -1018,7 +1018,17 @@ return { id: frame.id };"></textarea>
     window.sendPluginCommand = function(type, params, timeoutMs) {
       timeoutMs = timeoutMs || 30000;
       return new Promise(function(resolve, reject) {
-        const requestId = type.toLowerCase() + '_' + (++requestIdCounter) + '_' + Date.now();
+        // Use provided requestId from params if available (for forwarded requests)
+        // Otherwise generate a new one
+        var requestId;
+        if (params && params.requestId) {
+          requestId = params.requestId;
+          // Remove requestId from params to avoid duplication in message
+          params = Object.assign({}, params);
+          delete params.requestId;
+        } else {
+          requestId = type.toLowerCase() + '_' + (++requestIdCounter) + '_' + Date.now();
+        }
 
         const timeoutId = setTimeout(function() {
           if (window.__figmaPendingRequests.has(requestId)) {

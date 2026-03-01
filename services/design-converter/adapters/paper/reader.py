@@ -850,14 +850,451 @@ def _is_text_only(elem: _Element) -> bool:
     return all(isinstance(c, str) for c in elem.children)
 
 
+# ---------------------------------------------------------------------------
+# Tailwind CSS class parser (Paper uses Tailwind classes extensively)
+# ---------------------------------------------------------------------------
+
+# Tailwind spacing scale (4px base unit)
+_TW_SPACING = {
+    "px": "1px", "0": "0px", "0.5": "2px", "1": "4px", "1.5": "6px", "2": "8px",
+    "2.5": "10px", "3": "12px", "3.5": "14px", "4": "16px", "5": "20px",
+    "6": "24px", "7": "28px", "8": "32px", "9": "36px", "10": "40px",
+    "11": "44px", "12": "48px", "14": "56px", "16": "64px", "20": "80px",
+    "24": "96px", "28": "112px", "32": "128px", "36": "144px", "40": "160px",
+    "44": "176px", "48": "192px", "52": "208px", "56": "224px", "60": "240px",
+    "64": "256px", "72": "288px", "80": "320px", "96": "384px",
+}
+
+_TW_BORDER_RADIUS = {
+    "none": "0px", "sm": "2px", "": "4px", "DEFAULT": "4px", "md": "6px",
+    "lg": "8px", "xl": "12px", "2xl": "16px", "3xl": "24px", "full": "9999px",
+}
+
+
+def _parse_tailwind_class(cls: str) -> Dict[str, str]:
+    """
+    Parse a single Tailwind CSS class and return CSS properties.
+
+    Handles common Paper-generated Tailwind classes:
+      - w-[390px], h-[844px] → width/height
+      - size-full → width: 100%; height: 100%
+      - p-5, px-4, py-2, pt-3 → padding variants
+      - bg-[#050508] → backgroundColor
+      - flex, flex-col, flex-row → display/flexDirection
+      - gap-3, gap-[10px] → gap
+      - rounded-3xl → borderRadius
+      - text-[14px] → fontSize
+    """
+    css: Dict[str, str] = {}
+
+    # Width with arbitrary value: w-[390px], w-[50%]
+    m = re.match(r"^w-\[([^\]]+)\]$", cls)
+    if m:
+        val = m.group(1)
+        css["width"] = val if val.endswith(("px", "%", "rem", "em", "vw")) else f"{val}px"
+        return css
+
+    # Height with arbitrary value: h-[844px], h-[100%]
+    m = re.match(r"^h-\[([^\]]+)\]$", cls)
+    if m:
+        val = m.group(1)
+        css["height"] = val if val.endswith(("px", "%", "rem", "em", "vh")) else f"{val}px"
+        return css
+
+    # Size utilities: size-full, size-10, size-[100px]
+    if cls == "size-full":
+        css["width"] = "100%"
+        css["height"] = "100%"
+        return css
+    m = re.match(r"^size-(\d+)$", cls)
+    if m:
+        sp = _TW_SPACING.get(m.group(1))
+        if sp:
+            css["width"] = sp
+            css["height"] = sp
+        return css
+    m = re.match(r"^size-\[([^\]]+)\]$", cls)
+    if m:
+        val = m.group(1)
+        css["width"] = val if val.endswith(("px", "%", "rem", "em")) else f"{val}px"
+        css["height"] = css["width"]
+        return css
+
+    # Width presets: w-full, w-auto, w-10, w-1/2
+    if cls == "w-full":
+        css["width"] = "100%"
+        return css
+    if cls == "w-auto":
+        css["width"] = "auto"
+        return css
+    if cls == "w-screen":
+        css["width"] = "100vw"
+        return css
+    m = re.match(r"^w-(\d+)$", cls)
+    if m:
+        sp = _TW_SPACING.get(m.group(1))
+        if sp:
+            css["width"] = sp
+        return css
+    m = re.match(r"^w-1/(\d+)$", cls)
+    if m:
+        css["width"] = f"{100 // int(m.group(1))}%"
+        return css
+
+    # Height presets: h-full, h-auto, h-10, h-screen
+    if cls == "h-full":
+        css["height"] = "100%"
+        return css
+    if cls == "h-auto":
+        css["height"] = "auto"
+        return css
+    if cls == "h-screen":
+        css["height"] = "100vh"
+        return css
+    m = re.match(r"^h-(\d+)$", cls)
+    if m:
+        sp = _TW_SPACING.get(m.group(1))
+        if sp:
+            css["height"] = sp
+        return css
+
+    # Min/max dimensions
+    m = re.match(r"^(min|max)-w-\[([^\]]+)\]$", cls)
+    if m:
+        prop = f"{m.group(1)}Width"
+        val = m.group(2)
+        css[prop] = val if val.endswith(("px", "%", "rem", "em", "vw")) else f"{val}px"
+        return css
+    m = re.match(r"^(min|max)-h-\[([^\]]+)\]$", cls)
+    if m:
+        prop = f"{m.group(1)}Height"
+        val = m.group(2)
+        css[prop] = val if val.endswith(("px", "%", "rem", "em", "vh")) else f"{val}px"
+        return css
+
+    # Padding: p-5, px-4, py-2, pt-3, pb-4, pl-2, pr-2
+    for prefix, props in [
+        ("p", ("paddingTop", "paddingRight", "paddingBottom", "paddingLeft")),
+        ("px", ("paddingLeft", "paddingRight")),
+        ("py", ("paddingTop", "paddingBottom")),
+        ("pt", ("paddingTop",)),
+        ("pr", ("paddingRight",)),
+        ("pb", ("paddingBottom",)),
+        ("pl", ("paddingLeft",)),
+    ]:
+        m = re.match(rf"^{prefix}-(\d+(?:\.\d+)?)$", cls)
+        if m:
+            sp = _TW_SPACING.get(m.group(1), f"{float(m.group(1)) * 4}px")
+            for prop in props:
+                css[prop] = sp
+            return css
+        m = re.match(rf"^{prefix}-\[(\d+(?:\.\d+)?)(px|rem|em)?\]$", cls)
+        if m:
+            val = m.group(1)
+            unit = m.group(2) or "px"
+            for prop in props:
+                css[prop] = f"{val}{unit}"
+            return css
+
+    # Margin: m-4, mx-auto, my-2, mt-3, etc.
+    for prefix, props in [
+        ("m", ("marginTop", "marginRight", "marginBottom", "marginLeft")),
+        ("mx", ("marginLeft", "marginRight")),
+        ("my", ("marginTop", "marginBottom")),
+        ("mt", ("marginTop",)),
+        ("mr", ("marginRight",)),
+        ("mb", ("marginBottom",)),
+        ("ml", ("marginLeft",)),
+    ]:
+        m = re.match(rf"^{prefix}-(\d+(?:\.\d+)?)$", cls)
+        if m:
+            sp = _TW_SPACING.get(m.group(1), f"{float(m.group(1)) * 4}px")
+            for prop in props:
+                css[prop] = sp
+            return css
+        if cls == f"{prefix}-auto":
+            for prop in props:
+                css[prop] = "auto"
+            return css
+
+    # Gap: gap-3, gap-[10px]
+    m = re.match(r"^gap-(\d+(?:\.\d+)?)$", cls)
+    if m:
+        sp = _TW_SPACING.get(m.group(1), f"{float(m.group(1)) * 4}px")
+        css["gap"] = sp
+        return css
+    m = re.match(r"^gap-\[([^\]]+)\]$", cls)
+    if m:
+        val = m.group(1)
+        css["gap"] = val if val.endswith(("px", "rem", "em")) else f"{val}px"
+        return css
+
+    # Display: flex, hidden, block
+    if cls == "flex":
+        css["display"] = "flex"
+        return css
+    if cls == "hidden":
+        css["display"] = "none"
+        return css
+    if cls == "block":
+        css["display"] = "block"
+        return css
+    if cls == "inline":
+        css["display"] = "inline"
+        return css
+    if cls == "inline-block":
+        css["display"] = "inline-block"
+        return css
+
+    # Flex direction
+    if cls == "flex-row":
+        css["flexDirection"] = "row"
+        return css
+    if cls == "flex-col":
+        css["flexDirection"] = "column"
+        return css
+    if cls == "flex-row-reverse":
+        css["flexDirection"] = "row-reverse"
+        return css
+    if cls == "flex-col-reverse":
+        css["flexDirection"] = "column-reverse"
+        return css
+
+    # Flex wrap
+    if cls == "flex-wrap":
+        css["flexWrap"] = "wrap"
+        return css
+    if cls == "flex-nowrap":
+        css["flexWrap"] = "nowrap"
+        return css
+
+    # Justify content
+    for tw, jc in [
+        ("justify-start", "flex-start"), ("justify-end", "flex-end"),
+        ("justify-center", "center"), ("justify-between", "space-between"),
+        ("justify-around", "space-around"), ("justify-evenly", "space-evenly"),
+    ]:
+        if cls == tw:
+            css["justifyContent"] = jc
+            return css
+
+    # Align items
+    for tw, ai in [
+        ("items-start", "flex-start"), ("items-end", "flex-end"),
+        ("items-center", "center"), ("items-baseline", "baseline"),
+        ("items-stretch", "stretch"),
+    ]:
+        if cls == tw:
+            css["alignItems"] = ai
+            return css
+
+    # Flex shrink/grow
+    if cls == "shrink-0":
+        css["flexShrink"] = "0"
+        return css
+    if cls == "shrink":
+        css["flexShrink"] = "1"
+        return css
+    if cls == "grow-0":
+        css["flexGrow"] = "0"
+        return css
+    if cls == "grow":
+        css["flexGrow"] = "1"
+        return css
+
+    # Background color: bg-[#050508], bg-red-500
+    m = re.match(r"^bg-\[([^\]]+)\]$", cls)
+    if m:
+        css["backgroundColor"] = m.group(1)
+        return css
+
+    # Text color: text-[#71717A], text-white, text-gray-500
+    m = re.match(r"^text-\[([^\]]+)\]$", cls)
+    if m:
+        css["color"] = m.group(1)
+        return css
+    if cls == "text-white":
+        css["color"] = "#FFFFFF"
+        return css
+    if cls == "text-black":
+        css["color"] = "#000000"
+        return css
+
+    # Font size: text-[14px], text-sm, text-lg
+    m = re.match(r"^text-\[(\d+(?:\.\d+)?)(px|rem|em)?\]$", cls)
+    if m:
+        val = m.group(1)
+        unit = m.group(2) or "px"
+        css["fontSize"] = f"{val}{unit}"
+        return css
+    for tw, size in [
+        ("text-xs", "12px"), ("text-sm", "14px"), ("text-base", "16px"),
+        ("text-lg", "18px"), ("text-xl", "20px"), ("text-2xl", "24px"),
+    ]:
+        if cls == tw:
+            css["fontSize"] = size
+            return css
+
+    # Font weight: font-bold, font-semibold, etc.
+    for tw, wt in [
+        ("font-thin", "100"), ("font-extralight", "200"), ("font-light", "300"),
+        ("font-normal", "400"), ("font-medium", "500"), ("font-semibold", "600"),
+        ("font-bold", "700"), ("font-extrabold", "800"), ("font-black", "900"),
+    ]:
+        if cls == tw:
+            css["fontWeight"] = wt
+            return css
+
+    # Font family
+    if cls == "font-sans":
+        css["fontFamily"] = "sans-serif"
+        return css
+    if cls == "font-serif":
+        css["fontFamily"] = "serif"
+        return css
+    if cls == "font-mono":
+        css["fontFamily"] = "monospace"
+        return css
+
+    # Border radius: rounded, rounded-lg, rounded-3xl, rounded-[8px]
+    if cls == "rounded":
+        css["borderRadius"] = "4px"
+        return css
+    m = re.match(r"^rounded-(\w+)$", cls)
+    if m:
+        key = m.group(1)
+        if key in _TW_BORDER_RADIUS:
+            css["borderRadius"] = _TW_BORDER_RADIUS[key]
+        return css
+    m = re.match(r"^rounded-\[([^\]]+)\]$", cls)
+    if m:
+        val = m.group(1)
+        css["borderRadius"] = val if val.endswith(("px", "%", "rem", "em")) else f"{val}px"
+        return css
+
+    # Position
+    if cls == "relative":
+        css["position"] = "relative"
+        return css
+    if cls == "absolute":
+        css["position"] = "absolute"
+        return css
+    if cls == "fixed":
+        css["position"] = "fixed"
+        return css
+    if cls == "sticky":
+        css["position"] = "sticky"
+        return css
+
+    # Positioning with arbitrary values: left-[50%], top-[20px]
+    for prop, tw_prefix in [
+        ("left", "left"), ("top", "top"), ("right", "right"), ("bottom", "bottom"),
+    ]:
+        m = re.match(rf"^{tw_prefix}-\[(\d+(?:\.\d+)?)(px|%|rem|em|vw|vh)?\]$", cls)
+        if m:
+            val = m.group(1)
+            unit = m.group(2) or "px"
+            css[prop] = f"{val}{unit}"
+            return css
+
+    # Overflow
+    if cls == "overflow-clip":
+        css["overflow"] = "hidden"
+        return css
+    if cls == "overflow-hidden":
+        css["overflow"] = "hidden"
+        return css
+    if cls == "overflow-auto":
+        css["overflow"] = "auto"
+        return css
+    if cls == "overflow-scroll":
+        css["overflow"] = "scroll"
+        return css
+
+    # Opacity: opacity-50, opacity-[0.5]
+    m = re.match(r"^opacity-(\d+)$", cls)
+    if m:
+        css["opacity"] = str(int(m.group(1)) / 100)
+        return css
+    m = re.match(r"^opacity-\[([^\]]+)\]$", cls)
+    if m:
+        css["opacity"] = m.group(1)
+        return css
+
+    # Text alignment
+    if cls == "text-left":
+        css["textAlign"] = "left"
+        return css
+    if cls == "text-center":
+        css["textAlign"] = "center"
+        return css
+    if cls == "text-right":
+        css["textAlign"] = "right"
+        return css
+
+    # Text transform
+    if cls == "uppercase":
+        css["textTransform"] = "uppercase"
+        return css
+    if cls == "lowercase":
+        css["textTransform"] = "lowercase"
+        return css
+    if cls == "capitalize":
+        css["textTransform"] = "capitalize"
+        return css
+
+    # Letter spacing: tracking-[-0.2px], tracking-tight
+    m = re.match(r"^tracking-\[([^\]]+)\]$", cls)
+    if m:
+        val = m.group(1)
+        css["letterSpacing"] = val if val.endswith(("px", "em", "rem")) else f"{val}px"
+        return css
+
+    # Line height: leading-4, leading-[18px]
+    m = re.match(r"^leading-(\d+(?:\.\d+)?)$", cls)
+    if m:
+        sp = _TW_SPACING.get(m.group(1))
+        if sp:
+            css["lineHeight"] = sp
+        return css
+    m = re.match(r"^leading-\[([^\]]+)\]$", cls)
+    if m:
+        val = m.group(1)
+        css["lineHeight"] = val if val.endswith(("px", "rem", "em", "%")) else f"{val}px"
+        return css
+
+    return css
+
+
+def _parse_tailwind_classes(class_names: str) -> Dict[str, str]:
+    """
+    Parse a className string (space-separated classes) into CSS properties.
+    Later classes override earlier ones for the same property.
+    """
+    result: Dict[str, str] = {}
+    for cls in class_names.split():
+        props = _parse_tailwind_class(cls)
+        result.update(props)
+    return result
+
+
 def _get_style(elem: _Element) -> Dict[str, str]:
-    """Extract the CSS dict from an element's style prop."""
+    """Extract the CSS dict from an element's style prop and Tailwind className."""
+    css: Dict[str, str] = {}
+
+    # 1. Parse Tailwind classes first (lower priority)
+    class_names = elem.props.get("className", "")
+    if class_names and isinstance(class_names, str):
+        css.update(_parse_tailwind_classes(class_names))
+
+    # 2. Parse inline style prop (higher priority, overrides Tailwind)
     raw = elem.props.get("style", {})
     if isinstance(raw, dict):
-        return _jsx_style_to_css_dict(raw)
-    if isinstance(raw, str):
-        return parse_inline_style(raw)
-    return {}
+        css.update(_jsx_style_to_css_dict(raw))
+    elif isinstance(raw, str):
+        css.update(parse_inline_style(raw))
+
+    return css
 
 
 # ---------------------------------------------------------------------------
@@ -889,10 +1326,11 @@ def _extract_fills(css: Dict[str, str], node: UNNode) -> None:
             if grad:
                 node.fills.append(grad)
                 return
-        # Solid color
+        # Solid color - parse to hex string, then convert to UNColor
         try:
-            color = parse_css_color(bg)
-            if color:
+            hex_color = parse_css_color(bg)
+            if hex_color:
+                color = UNColor.from_hex(hex_color)
                 node.fills.append(UNSolidFill(color=color))
         except Exception:
             pass
@@ -910,8 +1348,9 @@ def _extract_strokes(css: Dict[str, str], node: UNNode) -> None:
         if m:
             try:
                 bw = float(m.group(1))
-                bc = parse_css_color(m.group(2).strip())
-                if bc:
+                bc_hex = parse_css_color(m.group(2).strip())
+                if bc_hex:
+                    bc = UNColor.from_hex(bc_hex)
                     node.strokes.append(
                         UNStroke(
                             fill=UNSolidFill(color=bc),
@@ -926,8 +1365,9 @@ def _extract_strokes(css: Dict[str, str], node: UNNode) -> None:
     if border_color and border_color not in ("none", "transparent"):
         bw = _px(border_width_str, 1.0) if border_width_str else 1.0
         try:
-            bc = parse_css_color(border_color)
-            if bc:
+            bc_hex = parse_css_color(border_color)
+            if bc_hex:
+                bc = UNColor.from_hex(bc_hex)
                 node.strokes.append(
                     UNStroke(
                         fill=UNSolidFill(color=bc),
@@ -959,8 +1399,9 @@ def _extract_shadows(css: Dict[str, str], node: UNNode) -> None:
             oy = float(m.group(2))
             blur = float(m.group(3))
             spread = float(m.group(4)) if m.group(4) else 0.0
-            color = parse_css_color(m.group(5))
-            if color:
+            color_hex = parse_css_color(m.group(5))
+            if color_hex:
+                color = UNColor.from_hex(color_hex)
                 node.effects.append(
                     UNDropShadow(
                         color=color,
@@ -1096,6 +1537,7 @@ def _element_to_node(
     parent_width: float = 0.0,
     parent_height: float = 0.0,
     depth: int = 0,
+    dimension_map: Optional[Dict[str, Tuple[int, int]]] = None,
 ) -> Optional[UNNode]:
     """
     Convert one ``_Element`` (and its subtree) into a ``UNNode``.
@@ -1111,23 +1553,42 @@ def _element_to_node(
     tag = elem.tag.lower()
     css = _get_style(elem)
 
-    # Determine size
-    width = _px(css.get("width"), parent_width)
-    height = _px(css.get("height"), parent_height)
+    # Determine size - track whether dimensions are percentage-based
+    width_css = css.get("width", "")
+    height_css = css.get("height", "")
+
+    # Track sizing mode: explicit pixels, percentage, or auto
+    width_is_fill = False  # 100% → FILL mode
+    height_is_fill = False
+    width_is_hug = False   # auto/hug content
+    height_is_hug = False
+
+    width = _px(width_css, parent_width)
+    height = _px(height_css, parent_height)
 
     # Handle percentage-based dimensions
-    if "%" in str(css.get("width", "")):
+    if "%" in str(width_css):
         try:
-            pct = float(str(css["width"]).replace("%", "")) / 100.0
+            pct = float(str(width_css).replace("%", "")) / 100.0
             width = parent_width * pct
+            if pct >= 1.0:  # 100% or more → FILL mode
+                width_is_fill = True
         except ValueError:
             pass
-    if "%" in str(css.get("height", "")):
+    if "%" in str(height_css):
         try:
-            pct = float(str(css["height"]).replace("%", "")) / 100.0
+            pct = float(str(height_css).replace("%", "")) / 100.0
             height = parent_height * pct
+            if pct >= 1.0:  # 100% or more → FILL mode
+                height_is_fill = True
         except ValueError:
             pass
+
+    # Auto dimensions → HUG mode
+    if str(width_css).lower() in ("auto", ""):
+        width_is_hug = True
+    if str(height_css).lower() in ("auto", ""):
+        height_is_hug = True
 
     # Position (absolute layout)
     x = _px(css.get("left") or css.get("x"), 0.0)
@@ -1165,8 +1626,9 @@ def _element_to_node(
             color_str = css.get("color") or css.get("fill")
             if color_str and color_str not in ("none", "transparent", "inherit"):
                 try:
-                    c = parse_css_color(color_str)
-                    if c:
+                    c_hex = parse_css_color(color_str)
+                    if c_hex:
+                        c = UNColor.from_hex(c_hex)
                         node.fills.append(UNSolidFill(color=c))
                 except Exception:
                     pass
@@ -1268,15 +1730,17 @@ def _element_to_node(
         )
         if fill_color_str and fill_color_str not in ("none", ""):
             try:
-                c = parse_css_color(fill_color_str)
-                if c:
+                c_hex = parse_css_color(fill_color_str)
+                if c_hex:
+                    c = UNColor.from_hex(c_hex)
                     node.fills.append(UNSolidFill(color=c))
             except Exception:
                 pass
         if stroke_color_str and stroke_color_str not in ("none", ""):
             try:
-                sc = parse_css_color(stroke_color_str)
-                if sc:
+                sc_hex = parse_css_color(stroke_color_str)
+                if sc_hex:
+                    sc = UNColor.from_hex(sc_hex)
                     node.strokes.append(
                         UNStroke(
                             fill=UNSolidFill(color=sc),
@@ -1319,8 +1783,9 @@ def _element_to_node(
                 fill_str = path_child.props.get("fill", css.get("fill", ""))
                 if fill_str and fill_str not in ("none", "currentColor", ""):
                     try:
-                        c = parse_css_color(fill_str)
-                        if c:
+                        c_hex = parse_css_color(fill_str)
+                        if c_hex:
+                            c = UNColor.from_hex(c_hex)
                             node.fills.append(UNSolidFill(color=c))
                     except Exception:
                         pass
@@ -1344,14 +1809,23 @@ def _element_to_node(
     # ------------------------------------------------------------------
     # FRAME (div, section, …)
     # ------------------------------------------------------------------
+
+    def _make_unsize(value: float, is_fill: bool, is_hug: bool) -> UNSize:
+        """Create UNSize with correct sizing mode based on CSS analysis."""
+        if is_fill:
+            return UNSize.fill()
+        if is_hug or value <= 0:
+            return UNSize.hug()
+        return UNSize.fixed(max(value, 1.0))
+
     node = UNNode(
         type=NodeType.FRAME,
         id=_next_node_id(),
         name=elem.props.get("id", elem.props.get("data-name", tag)),
         x=x,
         y=y,
-        width=UNSize.fixed(max(width, 1.0)) if width else UNSize.hug(),
-        height=UNSize.fixed(max(height, 1.0)) if height else UNSize.hug(),
+        width=_make_unsize(width, width_is_fill, width_is_hug),
+        height=_make_unsize(height, height_is_fill, height_is_hug),
         opacity=opacity,
         corner_radius=corner_radius,
         clip_content="hidden" in css.get("overflow", "").lower(),
@@ -1388,8 +1862,9 @@ def _element_to_node(
                 color_str = css.get("color")
                 if color_str:
                     try:
-                        c = parse_css_color(color_str)
-                        if c:
+                        c_hex = parse_css_color(color_str)
+                        if c_hex:
+                            c = UNColor.from_hex(c_hex)
                             text_node.fills.append(UNSolidFill(color=c))
                     except Exception:
                         pass
@@ -1400,6 +1875,7 @@ def _element_to_node(
                 parent_width=child_width,
                 parent_height=child_height,
                 depth=depth + 1,
+                dimension_map=dimension_map,
             )
             if child_node:
                 node.children.append(child_node)
@@ -1472,8 +1948,9 @@ class PaperReader(BaseReader):
         NodeNotFoundError   if the node does not exist.
         PaperConnectionError if Paper Desktop is not running.
         """
-        global _node_counter
+        global _node_counter, _dimension_map
         _node_counter = 0  # reset for deterministic IDs
+        _dimension_map = {}  # reset dimension cache
 
         try:
             jsx = self._client.get_jsx(node_id, mode=self._jsx_mode)
@@ -1487,6 +1964,11 @@ class PaperReader(BaseReader):
 
         log.debug("Paper get_jsx returned %d chars for node %s", len(jsx), node_id)
 
+        # Fetch tree summary to get actual computed dimensions for all nodes
+        # This is essential because Paper's CSS uses percentage-based sizes
+        # that don't translate directly to Figma's absolute positioning
+        dim_map = self._fetch_dimension_map(node_id)
+
         parser = JsxParser(jsx)
         root_elem = parser.parse()
 
@@ -1496,7 +1978,7 @@ class PaperReader(BaseReader):
                 f"JSX preview: {jsx[:200]}"
             )
 
-        node = _element_to_node(root_elem)
+        node = _element_to_node(root_elem, dimension_map=dim_map)
         if node is None:
             raise ValueError(
                 f"Element-to-node conversion returned None for Paper node '{node_id}'."
@@ -1508,7 +1990,53 @@ class PaperReader(BaseReader):
         if not node.name or node.name in ("div", "section", "main"):
             node.name = f"Paper [{node_id}]"
 
+        # Fix: Get actual dimensions from Paper API for artboards
+        # JSX parsing loses width/height for root artboards
+        try:
+            info = self._client.get_node_info(node_id)
+            if info:
+                w = info.get("width")
+                h = info.get("height")
+                if w and h and (node.width.value == 0 or node.height.value == 0):
+                    log.debug(
+                        "Fixing root dimensions for %s: %sx%s (was %sx%s)",
+                        node_id, w, h, node.width.value, node.height.value
+                    )
+                    node.width = UNSize.fixed(float(w))
+                    node.height = UNSize.fixed(float(h))
+        except Exception as exc:
+            log.warning("Could not fetch node info for %s: %s", node_id, exc)
+
         return node
+
+    def _fetch_dimension_map(self, root_id: str, depth: int = 10) -> Dict[str, Tuple[int, int]]:
+        """
+        Fetch tree summary from Paper and extract a map of node_id → (width, height).
+
+        This gives us the ACTUAL computed dimensions from Paper's layout engine,
+        which is essential for accurately converting percentage-based layouts to Figma.
+        """
+        dim_map: Dict[str, Tuple[int, int]] = {}
+        try:
+            result = self._client.call_tool(
+                "get_tree_summary",
+                {"nodeId": root_id, "depth": depth}
+            )
+            summary = result.get("summary", "") if isinstance(result, dict) else str(result)
+
+            # Parse lines like: Frame "Wallet Original" (TO-0) 390×844
+            for line in summary.split("\n"):
+                # Match pattern: Type "Name" (ID) W×H
+                m = re.search(r'\(([A-Z0-9-]+)\)\s*(\d+)×(\d+)', line)
+                if m:
+                    node_id = m.group(1)
+                    width = int(m.group(2))
+                    height = int(m.group(3))
+                    dim_map[node_id] = (width, height)
+        except Exception as exc:
+            log.warning("Could not fetch tree summary for %s: %s", root_id, exc)
+
+        return dim_map
 
     def list_nodes(self) -> List[Dict[str, Any]]:
         """

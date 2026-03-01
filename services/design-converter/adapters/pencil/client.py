@@ -82,10 +82,16 @@ class PencilToolError(Exception):
 
 
 def _http_post(
-    url: str, payload: Dict[str, Any], timeout: float = _HTTP_TIMEOUT
-) -> Dict[str, Any]:
+    url: str,
+    payload: Dict[str, Any],
+    timeout: float = _HTTP_TIMEOUT,
+    session_id: Optional[str] = None,
+) -> Tuple[Dict[str, Any], Optional[str]]:
     """
-    Send a JSON POST request and return the parsed response body.
+    Send a JSON POST request and return the parsed response body + session ID.
+
+    Returns (data, session_id) tuple. session_id is extracted from
+    Mcp-Session-Id response header if present.
 
     Raises
     ------
@@ -93,18 +99,23 @@ def _http_post(
     PencilToolError        on a JSON-RPC error response.
     """
     body = json.dumps(payload).encode("utf-8")
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    if session_id:
+        headers["Mcp-Session-Id"] = session_id
+
     req = urllib.request.Request(
         url,
         data=body,
-        headers={
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        },
+        headers=headers,
         method="POST",
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             raw = resp.read().decode("utf-8")
+            resp_session_id = resp.headers.get("Mcp-Session-Id")
     except urllib.error.URLError as exc:
         raise PencilConnectionError(f"HTTP POST to {url} failed: {exc}") from exc
 
@@ -123,6 +134,14 @@ def _http_post(
             message=err.get("message", str(err)),
         )
 
+    return data, resp_session_id
+
+
+def _http_post_simple(
+    url: str, payload: Dict[str, Any], timeout: float = _HTTP_TIMEOUT
+) -> Dict[str, Any]:
+    """Simple wrapper that returns just the data (for backward compatibility)."""
+    data, _ = _http_post(url, payload, timeout)
     return data
 
 
@@ -192,13 +211,24 @@ def _detect_port_from_processes() -> Optional[int]:
 def _probe_port(host: str, port: int) -> bool:
     """Return True if a Pencil MCP server is listening on host:port."""
     url = f"http://{host}:{port}/mcp"
+    # Try POST with JSON-RPC initialize (Pencil MCP only responds to POST)
     try:
-        _http_get(url, timeout=_PROBE_TIMEOUT)
+        init_payload = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {},
+                "clientInfo": {"name": "probe", "version": "0.1"},
+            },
+        }
+        _http_post_simple(url, init_payload, timeout=_PROBE_TIMEOUT)
         return True
-    except PencilConnectionError:
+    except (PencilConnectionError, PencilToolError):
         pass
 
-    # Also try the /health or / endpoint
+    # Also try the /health or / endpoint with GET
     for path in ("/health", "/", "/sse"):
         try:
             url2 = f"http://{host}:{port}{path}"
@@ -344,6 +374,7 @@ class PencilClient:
         self._sse_session: Optional[_SSESession] = None
         self._rpc_id: int = 0
         self._connected: bool = False
+        self._session_id: Optional[str] = None  # MCP session ID for HTTP transport
 
     # ── Lifecycle ──────────────────────────────────────────────────────────
 
@@ -360,12 +391,23 @@ class PencilClient:
 
         base = f"http://{self.host}:{self.port}"
 
-        # Try simple POST transport first
+        # Try simple POST transport first (Pencil MCP only responds to POST)
         try:
-            _http_get(f"{base}/mcp", timeout=_PROBE_TIMEOUT)
+            init_payload = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {},
+                    "clientInfo": {"name": "pencil-client", "version": "0.1"},
+                },
+            }
+            _, session_id = _http_post(f"{base}/mcp", init_payload, timeout=_PROBE_TIMEOUT)
+            self._session_id = session_id
             self._transport = "post"
-            log.info("Pencil MCP connected via POST transport at %s", base)
-        except PencilConnectionError:
+            log.info("Pencil MCP connected via POST transport at %s (session=%s)", base, session_id)
+        except (PencilConnectionError, PencilToolError):
             # Fall back to SSE transport
             try:
                 sess = _SSESession(base)
@@ -383,6 +425,7 @@ class PencilClient:
     def disconnect(self) -> None:
         self._connected = False
         self._sse_session = None
+        self._session_id = None
 
     def __enter__(self) -> "PencilClient":
         self.connect()
@@ -408,7 +451,7 @@ class PencilClient:
 
         if self._transport == "post":
             url = f"http://{self.host}:{self.port}/mcp"
-            data = _http_post(url, payload, timeout=self.timeout)
+            data, _ = _http_post(url, payload, timeout=self.timeout, session_id=self._session_id)
             return data.get("result")
 
         # SSE transport
@@ -416,7 +459,7 @@ class PencilClient:
             raise PencilConnectionError(
                 "SSE session not established. Call connect() first."
             )
-        data = _http_post(self._sse_session.endpoint, payload, timeout=self.timeout)
+        data, _ = _http_post(self._sse_session.endpoint, payload, timeout=self.timeout)
         return data.get("result")
 
     def call_tool(self, name: str, arguments: Dict[str, Any]) -> Any:
@@ -1174,6 +1217,100 @@ class PencilClient:
                 outcome["error"] = str(exc)
 
             results.append(outcome)
+
+        return results
+
+    # ── Script execution (Pencil native format) ─────────────────────────────
+
+    def run_batch_script(self, script: str, file_path: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Execute a Pencil batch_design script in the native I/C/R/U/D/M/G syntax.
+
+        The script format is JavaScript-like, with each operation on its own line:
+            n1=I("document", {"type": "frame", "name": "Card", ...})
+            n2=I(n1, {"type": "text", "content": "Hello", ...})
+            U(n2, {"fill": "#000000"})
+
+        Args:
+            script: The batch_design script string
+            file_path: Optional .pen file path (uses active file if not specified)
+
+        Returns:
+            List of result dicts with created node IDs
+
+        Example
+        -------
+        ::
+            script = \'\'\'
+            frame=I(document, {"type": "frame", "name": "Card", "width": 320, "height": 200})
+            text=I(frame, {"type": "text", "content": "Hello", "fill": "#000000"})
+            \'\'\'
+            results = client.run_batch_script(script)
+            print(results[0].get("id"))  # First created node ID
+        """
+        if not self._connected:
+            self.connect()
+
+        args: Dict[str, Any] = {"operations": script}
+        if file_path:
+            args["filePath"] = file_path
+
+        result = self.call_tool("batch_design", args)
+
+        # Parse the response - Pencil returns markdown text in content array
+        results_list = []
+
+        if isinstance(result, str):
+            # Response is a markdown string - parse it
+            results_list = self._parse_batch_design_response(result)
+        elif isinstance(result, list):
+            # Could be content array
+            for item in result:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    text = item.get("text", "")
+                    results_list.extend(self._parse_batch_design_response(text))
+                elif isinstance(item, dict) and "id" in item:
+                    results_list.append(item)
+        elif isinstance(result, dict):
+            # Check for content array (MCP format)
+            content = result.get("content", [])
+            if isinstance(content, list):
+                for item in content:
+                    if isinstance(item, dict) and item.get("type") == "text":
+                        text = item.get("text", "")
+                        results_list.extend(self._parse_batch_design_response(text))
+            elif "results" in result:
+                results_list = result["results"]
+            elif "id" in result:
+                results_list = [result]
+
+        return results_list
+
+    def _parse_batch_design_response(self, text: str) -> List[Dict[str, Any]]:
+        """
+        Parse Pencil's batch_design markdown response to extract node IDs.
+
+        Example response:
+        # Successfully executed all operations.
+
+        ## Operation results:
+        - Inserted node `R0EUe`: {"type":"frame",...}
+        - Updated properties of node `R0EUe`
+        """
+        import re
+
+        results = []
+        # Look for "Inserted node `ID`:" pattern
+        pattern = r"Inserted node `([^`]+)`"
+        for match in re.finditer(pattern, text):
+            node_id = match.group(1)
+            results.append({"id": node_id, "success": True})
+
+        # Also look for "Copied node `ID`:" pattern
+        copy_pattern = r"Copied node `([^`]+)`"
+        for match in re.finditer(copy_pattern, text):
+            node_id = match.group(1)
+            results.append({"id": node_id, "success": True})
 
         return results
 

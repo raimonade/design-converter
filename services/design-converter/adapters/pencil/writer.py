@@ -897,6 +897,8 @@ class PencilWriter(BaseWriter):
         ------
         WriteError  if Pencil rejects the operations.
         """
+        from adapters.pencil.ops import build_batch_script, build_batch_script_with_parent
+
         if not self._client._connected:
             self._client.connect()
 
@@ -917,17 +919,14 @@ class PencilWriter(BaseWriter):
             root_id = self._write_as_artboard(node)
             return root_id
 
-        # Build the full op list
-        reset_ref_counter()
-        ops = _build_ops(node, parent_ref="")
+        # Build the batch_design script with parent
+        if parent_id:
+            script = build_batch_script_with_parent(node, parent_id)
+        else:
+            script = build_batch_script(node)
 
-        # If we have a parent, inject it into the root create op
-        if parent_id and ops:
-            root_create = ops[0]
-            root_create["args"]["parentId"] = parent_id
-
-        # Dispatch
-        return self._dispatch(ops)
+        # Execute the script
+        return self._dispatch_script(script)
 
     # ── Internal helpers ───────────────────────────────────────────────────
 
@@ -938,59 +937,58 @@ class PencilWriter(BaseWriter):
 
         Returns the artboard's Pencil node ID.
         """
-        from ir.nodes import SizingMode
+        from adapters.pencil.ops import build_artboard_script
 
-        w = node.width.value if node.width.mode == SizingMode.FIXED else 390.0
-        h = node.height.value if node.height.mode == SizingMode.FIXED else 844.0
-        fill_color = _primary_fill_color(node) or "#FFFFFF"
+        # Build the batch_design script
+        script, binding = build_artboard_script(node)
 
+        log.debug("PencilWriter: running batch_design script for '%s' (%d chars)",
+                  node.name, len(script))
+
+        # Execute the script
         try:
-            artboard_id = self._client.create_artboard(
-                name=node.name,
-                x=round(node.x, 2),
-                y=round(node.y, 2),
-                width=round(w, 2),
-                height=round(h, 2),
-                background_color=fill_color,
-            )
-        except PencilToolError as exc:
+            results = self._client.run_batch_script(script)
+            log.debug("PencilWriter: batch_design results: %s", results)
+        except (PencilToolError, PencilConnectionError) as exc:
             raise WriteError("pencil", str(exc)) from exc
 
-        log.debug("PencilWriter: created artboard '%s' → id=%s", node.name, artboard_id)
+        # Extract the artboard ID from results
+        if results and isinstance(results, list):
+            for result in results:
+                if isinstance(result, dict):
+                    node_id = result.get("id") or result.get("nodeId")
+                    if node_id:
+                        log.debug("PencilWriter: created artboard '%s' → id=%s",
+                                  node.name, node_id)
+                        return node_id
 
-        if not artboard_id:
-            raise WriteError("pencil", "create_artboard returned no ID")
+        raise WriteError("pencil", "batch_design returned no node ID")
 
-        # Build ops for gradient fills, strokes, effects on the artboard itself
-        reset_ref_counter()
-        artboard_ref = _new_ref()
+    def _dispatch_script(self, script: str) -> str:
+        """
+        Send a batch_design script string to Pencil and return the first node ID.
 
-        # We need a fake "ref" for the already-created artboard so child ops
-        # can reference it.  We inject a resolve_ref entry manually.
-        extra_ops: List[Dict[str, Any]] = []
-        extra_ops.extend(_fill_ops(artboard_ref, node))
-        extra_ops.extend(_stroke_ops(artboard_ref, node))
-        extra_ops.extend(_effect_ops(artboard_ref, node))
+        Parameters
+        ----------
+        script : batch_design script in I/C/R/U/D/M/G syntax
+        """
+        if not script:
+            return ""
 
-        # Build ops for children, all referencing the artboard
-        child_ops: List[Dict[str, Any]] = []
-        for child in node.children:
-            child_ops.extend(_build_ops(child, parent_ref=artboard_ref))
+        try:
+            results = self._client.run_batch_script(script)
+        except (PencilToolError, PencilConnectionError) as exc:
+            raise WriteError("pencil", str(exc)) from exc
 
-        all_ops = extra_ops + child_ops
+        # Extract the ID from the first result that has one
+        if results and isinstance(results, list):
+            for result in results:
+                if isinstance(result, dict):
+                    node_id = result.get("id") or ""
+                    if node_id:
+                        return node_id
 
-        if all_ops:
-            # Replace $artboard_ref placeholder with the real artboard_id
-            import json as _json
-
-            serialised = _json.dumps(all_ops)
-            serialised = serialised.replace(f'"${artboard_ref}"', f'"{artboard_id}"')
-            serialised = serialised.replace(f"${artboard_ref}", artboard_id)
-            all_ops = _json.loads(serialised)
-
-            self._dispatch(all_ops, pre_resolved=True)
-
-        return artboard_id
+        return ""
 
     def _dispatch(
         self,

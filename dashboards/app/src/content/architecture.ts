@@ -27,10 +27,10 @@ export const languageMetrics: LanguageMetric[] = [
   {
     language: 'Python',
     component: 'design-converter',
-    linesOfCode: 19836,
-    files: 32,
+    linesOfCode: 24000,
+    files: 41,
     dependencies: '0 runtime (stdlib only)',
-    purpose: 'Transformation layer — IR, adapters, code generation',
+    purpose: 'Transformation layer — IR, adapters, code generation, Tailwind parser',
   },
   {
     language: 'Bash',
@@ -71,14 +71,23 @@ export const architectureLayers: ArchitectureLayer[] = [
 ];
 
 export const designConverterStats = {
-  linesOfCode: 19836,
-  files: 32,
+  linesOfCode: 24000,
+  files: 41,
   runtimeDependencies: 0,
-  testCount: 146,
+  testCount: 280,
   adapters: 3,
   irDataclasses: 15,
   irEnums: 13,
 };
+
+export const conversionPaths = [
+  { from: 'Paper', to: 'Figma', status: 'working', mode: 'script + bridge' },
+  { from: 'Paper', to: 'Pencil', status: 'working', mode: 'batch_design' },
+  { from: 'Figma', to: 'Paper', status: 'working', mode: 'HTTP MCP' },
+  { from: 'Figma', to: 'Pencil', status: 'working', mode: 'batch_design' },
+  { from: 'Pencil', to: 'Figma', status: 'working', mode: 'script + bridge' },
+  { from: 'Pencil', to: 'Paper', status: 'working', mode: 'HTTP MCP' },
+];
 
 export const zeroDependencyModules = [
   'dataclasses', 'typing', 'enum', 'pathlib', 'json', 're', 'os', 'sys',

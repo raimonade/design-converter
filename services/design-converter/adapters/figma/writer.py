@@ -507,10 +507,47 @@ class _FigmaCodeEmitter:
             self._lines.append(f"  {var}.rotation = {node.rotation};")
 
     def _set_size(self, var: str, node: UNNode) -> None:
-        """Resize using the concrete pixel values from UNSize."""
-        w = node.width.value if node.width else 100.0
-        h = node.height.value if node.height else 100.0
-        self._lines.append(f"  {var}.resize({w},{h});")
+        """Resize using the concrete pixel values from UNSize.
+
+        - FIXED mode: use explicit pixel value (min 1.0 to avoid invisible frames)
+        - HUG mode: skip resize, let Figma auto-size to content
+        - FILL mode: skip resize, will be handled by auto-layout parent
+        """
+        from ir.nodes import SizingMode
+
+        # Handle width
+        if node.width:
+            if node.width.mode == SizingMode.HUG:
+                w = None  # Skip - let Figma hug content
+            elif node.width.mode == SizingMode.FILL:
+                w = None  # Skip - parent's auto-layout will size it
+            else:
+                w = max(node.width.value, 1.0) if node.width.value > 0 else None
+        else:
+            w = 100.0  # Default fallback
+
+        # Handle height
+        if node.height:
+            if node.height.mode == SizingMode.HUG:
+                h = None  # Skip - let Figma hug content
+            elif node.height.mode == SizingMode.FILL:
+                h = None  # Skip - parent's auto-layout will size it
+            else:
+                h = max(node.height.value, 1.0) if node.height.value > 0 else None
+        else:
+            h = 100.0  # Default fallback
+
+        # Only emit resize if BOTH dimensions are FIXED
+        # If one is FILL/HUG, Figma will handle sizing via layoutGrow/layoutAlign
+        if w is not None and h is not None:
+            self._lines.append(f"  {var}.resize({w},{h});")
+        elif w is not None:
+            # Only width is FIXED - use resizeWithoutConstraints to set just width
+            self._lines.append(f"  {var}.resizeWithoutConstraints({w},1);")
+        elif h is not None:
+            # Only height is FIXED - use resizeWithoutConstraints to set just height
+            self._lines.append(f"  {var}.resizeWithoutConstraints(1,{h});")
+        # If both are None (both FILL/HUG), skip resize entirely
 
     def _set_corner_radius(self, var: str, node: UNNode) -> None:
         if not node.corner_radius:
@@ -696,8 +733,17 @@ class _FigmaCodeEmitter:
             self._lines.append(f'  {var}.primaryAxisSizingMode = "AUTO";')
         if counter_mode == SizingMode.HUG:
             self._lines.append(f'  {var}.counterAxisSizingMode = "AUTO";')
-        if w_mode == SizingMode.FILL or h_mode == SizingMode.FILL:
+
+        # FILL mode handling:
+        # - layoutGrow = 1 → expands along parent's primary axis
+        # - layoutAlign = "STRETCH" → expands along parent's counter axis
+        # We set BOTH when either dimension is FILL because:
+        # - If we're FILL in primary axis: layoutGrow = 1
+        # - If we're FILL in counter axis: layoutAlign = "STRETCH"
+        if primary_mode == SizingMode.FILL:
             self._lines.append(f"  {var}.layoutGrow = 1;")
+        if counter_mode == SizingMode.FILL:
+            self._lines.append(f'  {var}.layoutAlign = "STRETCH";')
 
         if node.layout_wrap:
             self._lines.append(f'  {var}.layoutWrap = "WRAP";')

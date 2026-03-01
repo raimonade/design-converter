@@ -72,32 +72,32 @@ export function Dashboard() {
         </kbd>
       </button>
 
-      {/* Hero */}
-      <header className="mb-8 pb-8 border-b border-[var(--color-border)]">
+      {/* Hero — compact */}
+      <header className="mb-6 pb-6 border-b border-[var(--color-border)]">
         <div className="eyebrow">Unified Design Workspace</div>
-        <h1 className="mb-4">
+        <h1 className="mb-3">
           Design<span className="text-[var(--color-accent)]">Dev</span>
-          <br />
-          <em>AI-powered design tooling</em>
+          {' '}<em>AI-powered design tooling</em>
         </h1>
-        <p className="text-[var(--color-text-secondary)] text-base max-w-xl mt-4 mb-5">
+        <p className="text-[var(--color-text-secondary)] text-base max-w-2xl mt-3 mb-4">
           Integrating Figma, Paper Design, and Pencil.dev through MCP servers,
           a zero-dependency Python IR, CLI tools, and AI skills.
         </p>
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="info">v1.2.0</Badge>
-          <Badge variant="secondary">2026-03-01</Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="info">v1.3.0</Badge>
+          <Badge variant="secondary">2026-03-22</Badge>
           <Badge variant="default" dot>5 MCPs Active</Badge>
+          <Badge variant="default">280 Tests Passing</Badge>
         </div>
       </header>
 
       {/* Status Strip */}
-      <div className="mb-10">
+      <div className="mb-8">
         <StatusStrip servers={mcpServers} />
       </div>
 
       {/* §1 — At a Glance */}
-      <section className="mb-16">
+      <section className="mb-12">
         <h2>
           <span className="section-num">§1</span>
           <SectionIcon icon={SparklesIcon as AnimatedIcon} />
@@ -156,29 +156,39 @@ export function Dashboard() {
           />
         </div>
 
-        {/* IR Pipeline */}
-        <div className="p-5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[var(--radius-md)]">
-          <h4 className="mt-0 mb-3">IR Conversion Pipeline</h4>
-          <div className="font-mono text-sm text-[var(--color-text-secondary)] leading-relaxed text-center py-3">
-            <span className="text-[var(--color-heading)]">Figma</span>
-            <span className="text-[var(--color-text-muted)]"> ←→ </span>
-            <span className="text-[var(--color-accent)]">UNNode (IR)</span>
-            <span className="text-[var(--color-text-muted)]"> ←→ </span>
-            <span className="text-[var(--color-heading)]">Paper</span>
-            <br />
-            <span className="text-[var(--color-text-muted)] inline-block mt-1">↕</span>
-            <br />
-            <span className="text-[var(--color-heading)]">Pencil</span>
+        {/* IR Pipeline — visual diagram */}
+        <div className="p-6 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[var(--radius-md)]">
+          <h4 className="mt-0 mb-4">IR Conversion Pipeline</h4>
+          <div className="flex items-center justify-center gap-3 flex-wrap py-4">
+            <div className="px-4 py-2.5 bg-[var(--color-blue-dim)] border border-[rgba(96,165,250,0.25)] rounded-[var(--radius-sm)] font-mono text-[13px] font-medium text-[var(--color-blue)]">
+              Figma
+            </div>
+            <span className="font-mono text-[var(--color-text-muted)] text-lg">⇄</span>
+            <div className="px-5 py-3 bg-[var(--color-accent-dim)] border border-[rgba(52,211,153,0.3)] rounded-[var(--radius-md)] text-center shadow-[0_0_20px_rgba(52,211,153,0.06)]">
+              <div className="font-mono text-[14px] font-bold text-[var(--color-accent)]">UNNode</div>
+              <div className="font-mono text-[10px] text-[var(--color-text-muted)] mt-0.5">Intermediate Representation</div>
+            </div>
+            <span className="font-mono text-[var(--color-text-muted)] text-lg">⇄</span>
+            <div className="px-4 py-2.5 bg-[var(--color-purple-dim)] border border-[rgba(167,139,250,0.25)] rounded-[var(--radius-sm)] font-mono text-[13px] font-medium text-[var(--color-purple)]">
+              Paper
+            </div>
           </div>
-          <p className="text-[var(--color-text-secondary)] text-sm mt-3 mb-0">
-            All adapters implement <code>BaseReader.read_node()</code> → <code>UNNode</code> and{' '}
-            <code>BaseWriter.write_node()</code> ← <code>UNNode</code>. Zero external runtime dependencies.
+          <div className="flex justify-center mb-4">
+            <div className="flex flex-col items-center gap-1">
+              <span className="font-mono text-[var(--color-text-muted)] text-sm">⇅</span>
+              <div className="px-4 py-2.5 bg-[var(--color-amber-dim)] border border-[rgba(251,191,36,0.25)] rounded-[var(--radius-sm)] font-mono text-[13px] font-medium text-[var(--color-amber)]">
+                Pencil
+              </div>
+            </div>
+          </div>
+          <p className="text-[var(--color-text-secondary)] text-sm mt-2 mb-0 text-center">
+            All adapters: <code>BaseReader.read_node()</code> → <code>UNNode</code> → <code>BaseWriter.write_node()</code>
           </p>
         </div>
       </section>
 
       {/* §2 — Quick Actions */}
-      <section className="mb-16">
+      <section className="mb-12">
         <h2>
           <span className="section-num">§2</span>
           <SectionIcon icon={BoltIcon as AnimatedIcon} />
@@ -235,7 +245,7 @@ export function Dashboard() {
       </section>
 
       {/* §3 — System Health */}
-      <section className="mb-16">
+      <section className="mb-12">
         <h2>
           <span className="section-num">§3</span>
           <SectionIcon icon={ClockIcon as AnimatedIcon} />
@@ -255,7 +265,7 @@ export function Dashboard() {
             {architectureLayers.map((layer, idx) => (
               <div
                 key={layer.name}
-                className="p-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] border-l-[3px] rounded-none rounded-r-[var(--radius-md)]"
+                className="p-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] border-l-[3px] rounded-none rounded-r-[var(--radius-md)] transition-all duration-200 hover:bg-[var(--color-bg-tertiary)] hover:shadow-[0_0_16px_rgba(0,0,0,0.2)]"
                 style={{
                   borderLeftColor:
                     idx === 0 ? 'var(--color-blue)' : idx === 1 ? 'var(--color-accent)' : 'var(--color-amber)',
@@ -288,7 +298,7 @@ export function Dashboard() {
       </section>
 
       {/* §4 — Language Breakdown */}
-      <section className="mb-16">
+      <section className="mb-12">
         <h2>
           <span className="section-num">§4</span>
           <SectionIcon icon={ChartBarIcon as AnimatedIcon} />
@@ -300,7 +310,7 @@ export function Dashboard() {
             items={[
               { label: 'CLI Tools (Bash)', value: 57000, formattedValue: '57,000', color: 'var(--color-amber)' },
               { label: 'figma-console MCP (TS)', value: 27943, formattedValue: '27,943', color: 'var(--color-blue)' },
-              { label: 'design-converter (Python)', value: 19836, formattedValue: '19,836', color: 'var(--color-accent)' },
+              { label: 'design-converter (Python)', value: 24000, formattedValue: '24,000', color: 'var(--color-accent)' },
               { label: 'claude-talk-to-figma (TS)', value: 5258, formattedValue: '5,258', color: 'var(--color-purple)' },
             ]}
           />
@@ -356,7 +366,7 @@ export function Dashboard() {
       </section>
 
       {/* §5 — MCP Servers */}
-      <section className="mb-16">
+      <section className="mb-12">
         <h2>
           <span className="section-num">§5</span>
           <SectionIcon icon={ServerStackIcon as AnimatedIcon} />
@@ -367,50 +377,43 @@ export function Dashboard() {
           Desktop Bridge plugin.
         </p>
 
-        <div className="space-y-3 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
           {mcpServers.map((server) => (
             <div
               key={server.id}
-              className="p-5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[var(--radius-md)] hover:border-[rgba(52,211,153,0.3)] transition-colors"
+              className="p-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-[var(--radius-md)] transition-all duration-200 hover:border-[rgba(52,211,153,0.3)] hover:shadow-[0_0_20px_rgba(52,211,153,0.04)]"
             >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`w-2 h-2 rounded-full mt-0.5 ${
-                      server.status === 'active' ? 'bg-[var(--color-accent)]' : 'bg-[var(--color-amber)]'
-                    }`}
-                  />
-                  <div>
-                    <div className="font-[family-name:var(--font-heading)] font-semibold text-[var(--color-heading)]">
-                      {server.name}
-                    </div>
-                    <div className="text-xs text-[var(--color-text-muted)] font-mono mt-0.5">
-                      {server.location}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-[var(--color-text-secondary)]">
-                    {server.tools} tools
-                  </span>
-                  <div className="flex gap-1">
-                    {server.capabilities.map((cap) => (
-                      <Badge key={cap} variant="secondary" className="text-[10px]">
-                        {cap.toUpperCase()}
-                      </Badge>
-                    ))}
-                  </div>
+              <div className="flex items-center gap-2.5 mb-2">
+                <span
+                  className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                    server.status === 'active' ? 'bg-[var(--color-accent)] animate-pulse-dot' : 'bg-[var(--color-amber)]'
+                  }`}
+                />
+                <span className="font-[family-name:var(--font-heading)] text-[15px] font-semibold text-[var(--color-heading)]">
+                  {server.name}
+                </span>
+                <span className="ml-auto font-mono text-xs text-[var(--color-text-secondary)]">
+                  {server.tools} tools
+                </span>
+              </div>
+              <p className="text-sm text-[var(--color-text-secondary)] mb-2 leading-snug">{server.description}</p>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-[var(--color-text-muted)] font-mono">{server.protocol}</span>
+                <div className="flex gap-1">
+                  {server.capabilities.map((cap) => (
+                    <Badge key={cap} variant="secondary" className="text-[9px]">
+                      {cap.toUpperCase()}
+                    </Badge>
+                  ))}
                 </div>
               </div>
-              <p className="text-sm text-[var(--color-text-secondary)] mb-1.5">{server.description}</p>
-              <div className="text-xs text-[var(--color-text-muted)] font-mono">{server.protocol}</div>
             </div>
           ))}
         </div>
       </section>
 
       {/* §6 — Quick Start */}
-      <section className="mb-16">
+      <section className="mb-12">
         <h2>
           <span className="section-num">§6</span>
           <SectionIcon icon={RocketLaunchIcon as AnimatedIcon} />
@@ -448,9 +451,18 @@ PaperWriter().write_node(tree, output_path="./output")`}
       </section>
 
       {/* Footer */}
-      <footer className="mt-16 pt-6 border-t border-[var(--color-border)] font-mono text-[11px] text-[var(--color-text-muted)] flex justify-between flex-wrap gap-2">
+      <footer className="mt-12 pt-5 border-t border-[var(--color-border)] font-mono text-[11px] text-[var(--color-text-muted)] flex justify-between flex-wrap gap-3">
         <span>DesignDev · AI-Powered Design Workspace</span>
-        <span>5 MCP Servers · {mcpStats.totalTools} Tools · {designConverterStats.linesOfCode.toLocaleString()} Lines</span>
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 bg-[var(--color-accent)] rounded-full" />
+            5 MCPs
+          </span>
+          <span className="text-[var(--color-border)]">·</span>
+          <span>{mcpStats.totalTools} Tools</span>
+          <span className="text-[var(--color-border)]">·</span>
+          <span>{designConverterStats.linesOfCode.toLocaleString()} Lines</span>
+        </div>
       </footer>
     </div>
   );

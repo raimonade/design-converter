@@ -527,6 +527,65 @@ class PaperClient:
             return result.get("jsx", result.get("code", str(result)))
         return str(result)
 
+    def get_node_info(self, node_id: str) -> Dict[str, Any]:
+        """
+        Return detailed node info by ID, including size, visibility, lock state,
+        parent, children IDs, and text content (for text nodes).
+
+        Parameters
+        ----------
+        node_id : str
+            Paper node ID (e.g. "TO-0").
+
+        Returns
+        -------
+        dict — {"id": str, "name": str, "width": int, "height": int,
+                "x": int, "y": int, "type": str, "visible": bool, ...}
+        """
+        return self.call_tool("get_node_info", {"nodeId": node_id})
+
+    def get_computed_styles(self, node_ids: List[str]) -> Dict[str, Dict[str, Any]]:
+        """
+        Return computed CSS styles for one or more nodes.
+
+        This returns the actual RENDERED pixel values, which is essential
+        for converting Paper's flexbox/percentage layouts to Figma's absolute
+        positioning.
+
+        Parameters
+        ----------
+        node_ids : list of str
+            Paper node IDs to query.
+
+        Returns
+        -------
+        dict — {nodeId: {cssProperty: value, ...}, ...}
+        """
+        result = self.call_tool("get_computed_styles", {"nodeIds": node_ids})
+        if isinstance(result, dict):
+            return result
+        return {}
+
+    def get_children(self, node_id: str) -> List[Dict[str, Any]]:
+        """
+        Return direct children of a node.
+
+        Parameters
+        ----------
+        node_id : str
+            Parent node ID.
+
+        Returns
+        -------
+        list — [{"id": str, "name": str, "type": str, "childCount": int}, ...]
+        """
+        result = self.call_tool("get_children", {"nodeId": node_id})
+        if isinstance(result, list):
+            return result
+        if isinstance(result, dict):
+            return result.get("children", [])
+        return []
+
     def get_node(self, node_id: str) -> Dict[str, Any]:
         """
         Return raw node data for a single node by ID.
