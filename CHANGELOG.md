@@ -6,6 +6,149 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.0] — 2026-03-01
+
+### Design Converter E2E + GitHub Repository
+
+Created private GitHub repo `willbnu/design-converter` for the project.
+
+#### Added
+- **GitHub repo**: https://github.com/willbnu/design-converter (private)
+- **Root `.gitignore`** — Python, Node, macOS, IDE, secrets, generated files
+- **`execute_design.py`** — CLI to execute generated JS via Desktop Bridge
+- **`talk_to_figma_client.py`** — Async WebSocket client for cursor-talk-to-figma-mcp
+
+#### Changed
+- Updated `claude-talk-to-figma` plugin with `execute_code` command (pending plugin reload)
+
+#### Architecture Comparison
+Researched and compared 4 Figma MCP/CLI tools:
+| Tool | CRUD | Protocol | Plugin Required |
+|------|------|----------|-----------------|
+| cursor-talk-to-figma-mcp | Full | WebSocket | Yes |
+| figma-cli (silships) | Full | HTTP API | No (API key) |
+| figma-console-mcp (southleft) | Full | WebSocket + CDP | Yes |
+| figma/mcp-server-guide (official) | Read-only | HTTP SSE | No (Dev Mode) |
+
+---
+
+## [1.3.0] — 2026-03-01
+
+### Context+ Integration
+
+Added Context+ MCP server for AST-based code intelligence across the workspace.
+
+#### Added
+- **Context+ MCP server** configured in `~/.config/opencode/mcp-servers.json`
+- **11 new tools** for code navigation and analysis:
+  - `get_context_tree` — Structural AST tree
+  - `get_file_skeleton` — Function signatures
+  - `semantic_code_search` — Embedding-based search
+  - `semantic_identifier_search` — Identifier-level retrieval
+  - `semantic_navigate` — Spectral clustering navigation
+  - `get_blast_radius` — Symbol usage tracing
+  - `run_static_analysis` — Linter integration
+  - `propose_commit` — Safe code write
+  - `get_feature_hub` — Wikilink navigation
+  - `list_restore_points` — Shadow backup listing
+  - `undo_change` — Restore from backup
+- **Configuration**: Uses Ollama (nomic-embed-text, llama3.2)
+- **Documentation**: `docs/CONTEXTPLUS_INTEGRATION.md`
+
+#### Technical Details
+- Uses local Ollama for embeddings (no cloud API required)
+- Creates `.mcp_data/` cache for embedding storage
+- Shadow restore points protect all code changes
+- Compatible with existing SUPERMEMORY and zvec-mem0
+
+---
+
+### Universal Plug — Phase 4-6 Complete
+
+The HTTP Bridge Server is now production-ready with plugin discovery, error recovery, and performance optimizations.
+
+#### `adapters/figma/bridge_server.py`
+- **Added** Phase 4: Plugin Discovery
+  - `_plugin_info: Dict[str, Any]` — Tracks plugin metadata (version, connected_at, variables_count)
+  - `_plugin_connected_at: float` — Connection timestamp for uptime tracking
+  - `_plugin_disconnect_count: int` — Number of times plugin has disconnected
+  - Detects `VARIABLES_DATA` and `PLUGIN_INFO` broadcasts from plugin
+  - Enhanced `/health` endpoint returns full plugin status with uptime
+
+- **Added** Phase 5: Error Recovery
+  - `_send_to_plugin_with_retry()` — Automatic retry with exponential backoff (1.5s, 3s, 6s)
+  - `MAX_RETRIES=3` — Maximum retry attempts
+  - Helpful error messages with actionable suggestions when plugin not connected
+  - `retry: false` option to disable retry per-request
+
+- **Added** Phase 6: Performance Optimization
+  - `POST /batch` — Execute multiple operations in single HTTP request
+  - `POST /fonts/precache` — Pre-load fonts for faster text operations
+  - `_loaded_fonts: set` — Font cache tracking across requests
+  - `BATCH_MAX_OPERATIONS=50` — Limit batch size
+  - `stop_on_error` option to halt batch on first failure
+
+#### `docs/UNIVERSAL_PLUG_PLAN.md`
+- **Updated** All 7 phases marked complete
+- **Added** Detailed documentation for new endpoints (/batch, /fonts/precache)
+- **Added** Example JSON request/response for all new features
+
+---
+
+## [1.1.0] — 2026-03-01
+
+### Universal Plug — HTTP Bridge for Figma
+
+All three design platforms (Figma, Paper, Pencil) now have symmetric HTTP access. No more manual copy-paste to write to Figma.
+
+#### `adapters/figma/bridge_server.py` _(new file)_
+- **Added** Standalone HTTP + WebSocket server (port 9223)
+- **Added** HTTP endpoints: `GET /health`, `GET /status`, `POST /execute`
+- **Added** WebSocket proxy to Desktop Bridge plugin
+- **Added** Auto-discovery on ports 9223–9232 (same as figma-console MCP)
+- **Added** Pending request tracking with timeout handling
+
+#### `adapters/figma/http_bridge.py` _(new file)_
+- **Added** `FigmaBridgeClient` — lightweight HTTP client for bridge server
+- **Added** Convenience methods: `create_rectangle()`, `create_frame()`, `create_text()`
+- **Added** `execute_and_wait()` with automatic retry on plugin not connected
+
+#### `adapters/figma/writer.py`
+- **Added** `mode="http"` — third mode using HTTP bridge server
+- **Added** `http_bridge_port` parameter (default: 9223)
+- **Added** `_write_via_http()` method for seamless HTTP writes
+
+#### `converter.py`
+- **Added** `--figma-writer-mode` CLI flag with choices: `script`, `bridge`, `http`
+- **Added** `--http-bridge-port` CLI flag (default: 9223)
+
+#### `cli/bin/`
+- **Added** `figma-bridge-server` — CLI to start/stop/status the HTTP bridge
+- **Updated** `design-convert.sh` with `--figma-mode=http` support
+
+#### `services/design-converter/tests/` _(new directory)_
+- **Added** 114 pytest tests covering all adapters and utilities
+- **Added** `test_ir_nodes.py` — 60 tests for UNColor, enums, UNTextRun, factory functions, serialization
+- **Added** `test_figma_reader.py` — 14 tests for color conversion, layout mapping, fill conversion
+- **Added** `test_figma_writer.py` — 13 tests for `_rgba()` function, `write_node()` API
+- **Added** `test_tokens.py` — 11 tests for token extraction, DTCG format, CSS vars export
+- **Added** `test_e2e.py` — 16 tests for node creation, serialization, traversal
+
+#### `docs/`
+- **Added** `UNIVERSAL_PLUG.md` — architecture and usage guide for symmetric platform access
+- **Added** `UNIVERSAL_PLUG_PLAN.md` — implementation phases and timeline
+- **Updated** `ANALYSIS_REPORT.md` — added HTTP Bridge Server section, three-mode architecture
+
+### Platform Access Matrix (Now Symmetric)
+
+| Platform | Read | Write | Protocol |
+|----------|------|-------|----------|
+| Paper | ✅ HTTP | ✅ HTTP | `localhost:29979` |
+| Pencil | ✅ MCP | ✅ MCP | MCP `batch_design` |
+| Figma | ✅ REST | ✅ HTTP | `localhost:9223` |
+
+---
+
 ## [1.0.0] — 2026-03-01
 
 ### Design Converter — Phase 1 Complete

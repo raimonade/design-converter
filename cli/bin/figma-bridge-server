@@ -1,0 +1,147 @@
+#!/bin/bash
+# figma-bridge-server - Start the Figma HTTP Bridge Server
+#
+# This server bridges HTTP requests to the Figma Desktop Bridge plugin.
+# Once running, any tool can execute code in Figma via HTTP POST.
+#
+# Usage:
+#   figma-bridge-server                    # Start on default port 9223
+#   figma-bridge-server --port 9224        # Use specific port
+#   figma-bridge-server --daemon           # Run in background
+#   figma-bridge-server --stop             # Stop the server
+#
+# After starting, the Desktop Bridge plugin will auto-connect.
+# Then you can execute code:
+#   curl -X POST http://localhost:9223/execute \
+#     -H "Content-Type: application/json" \
+#     -d '{"code": "figma.notify(\"Hello!\")"}'
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SVC_ROOT="$(cd "${SCRIPT_DIR}/../../services/design-converter" && pwd)"
+BRIDGE_SCRIPT="${SVC_ROOT}/adapters/figma/bridge_server.py"
+
+DEFAULT_PORT=9223
+PORT="${FIGMA_BRIDGE_PORT:-$DEFAULT_PORT}"
+DAEMON=false
+STOP=false
+
+usage() {
+    cat << 'EOF'
+figma-bridge-server - HTTP to Figma Bridge
+
+Usage:
+  figma-bridge-server [OPTIONS]
+
+Options:
+  --port PORT       Port to listen on (default: 9223)
+  --daemon, -d      Run in background
+  --stop            Stop the running server
+  --status          Check if server is running
+  --help, -h        Show this help
+
+Environment:
+  FIGMA_BRIDGE_PORT   Default port (default: 9223)
+
+Examples:
+  # Start the bridge
+  figma-bridge-server
+
+  # Start on different port
+  figma-bridge-server --port 9224
+
+  # Run in background
+  figma-bridge-server --daemon
+
+  # Check status
+  curl http://localhost:9223/health
+
+  # Execute code in Figma
+  curl -X POST http://localhost:9223/execute \
+    -H "Content-Type: application/json" \
+    -d '{"code": "figma.createRectangle()"}'
+
+The Desktop Bridge plugin must be open in Figma for execution to work.
+EOF
+    exit 0
+}
+
+check_running() {
+    local port=$1
+    if curl -s "http://localhost:${port}/health" 2>/dev/null | grep -q '"status"'; then
+        return 0
+    fi
+    return 1
+}
+
+stop_server() {
+    local port=$1
+    local pid
+    pid=$(lsof -t -i :$port 2>/dev/null || true)
+    if [ -n "$pid" ]; then
+        kill $pid 2>/dev/null || true
+        echo "Stopped server on port $port (PID: $pid)"
+    else
+        echo "No server running on port $port"
+    fi
+}
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --port)
+            PORT="$2"
+            shift 2
+            ;;
+        --daemon|-d)
+            DAEMON=true
+            shift
+            ;;
+        --stop)
+            STOP=true
+            shift
+            ;;
+        --status)
+            if check_running "$PORT"; then
+                echo "✅ Server running on port $PORT"
+                curl -s "http://localhost:${PORT}/health" | python3 -m json.tool
+            else
+                echo "❌ No server running on port $PORT"
+                exit 1
+            fi
+            exit 0
+            ;;
+        --help|-h)
+            usage
+            ;;
+        *)
+            echo "Unknown option: $1"
+            usage
+            ;;
+    esac
+done
+
+if [ "$STOP" = true ]; then
+    stop_server "$PORT"
+    exit 0
+fi
+
+# Check if already running
+if check_running "$PORT"; then
+    echo "✅ Server already running on port $PORT"
+    curl -s "http://localhost:${PORT}/health" | python3 -m json.tool
+    exit 0
+fi
+
+# Start the server
+echo "🚀 Starting Figma Bridge Server on port $PORT..."
+echo "   Waiting for Desktop Bridge plugin to connect..."
+echo ""
+
+if [ "$DAEMON" = true ]; then
+    nohup python3 "$BRIDGE_SCRIPT" --port "$PORT" > /tmp/figma-bridge.log 2>&1 &
+    echo "Started in background (PID: $!)"
+    echo "Logs: /tmp/figma-bridge.log"
+else
+    exec python3 "$BRIDGE_SCRIPT" --port "$PORT"
+fi

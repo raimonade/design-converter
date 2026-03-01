@@ -54,6 +54,7 @@ PARENT_ID=""
 REPLACE_ID=""
 FIGMA_WRITER_MODE="script"
 BRIDGE_PORT="9224"
+HTTP_BRIDGE_PORT="9223"
 FIGMA_TOKEN=""
 OUTPUT_DIR=""
 
@@ -93,10 +94,12 @@ OPTIONS
   --dry-run           Read source only; do not write
   --json              Machine-readable JSON output
   --verbose, -v       Print detailed progress
-  --figma-mode=MODE   FigmaWriter mode: script|bridge  (default: script)
+  --figma-mode=MODE   FigmaWriter mode: script|bridge|http  (default: script)
                         script — saves a .js file to paste into Figma Console
-                        bridge — executes live via Desktop Bridge plugin
+                        bridge — starts WebSocket server for Desktop Bridge plugin
+                        http   — uses HTTP bridge server (requires figma-bridge-server)
   --bridge-port=N     WebSocket bridge port (default: 9224)
+  --http-bridge-port=N HTTP bridge port for http mode (default: 9223)
   --figma-token=TOK   Figma API token (overrides FIGMA_API_KEY env var)
   --output-dir=DIR    Directory for script-mode .js files (default: CWD)
   --help, -h          Show this help
@@ -188,6 +191,10 @@ parse_args() {
                 BRIDGE_PORT="${1#*=}"
                 shift
                 ;;
+            --http-bridge-port=*)
+                HTTP_BRIDGE_PORT="${1#*=}"
+                shift
+                ;;
             --figma-token=*)
                 FIGMA_TOKEN="${1#*=}"
                 shift
@@ -247,10 +254,10 @@ check_converter() {
 
 validate_figma_mode() {
     case "$FIGMA_WRITER_MODE" in
-        script|bridge) ;;
+        script|bridge|http) ;;
         *)
             log_error "Invalid --figma-mode value: '${FIGMA_WRITER_MODE}'"
-            log_error "Valid values: script, bridge"
+            log_error "Valid values: script, bridge, http"
             exit $EXIT_ERROR
             ;;
     esac
@@ -432,6 +439,7 @@ run_converter() {
     [[ -n "$OUTPUT_DIR"   ]] && py_args+=("--output-dir=$OUTPUT_DIR")
     py_args+=("--figma-writer-mode=$FIGMA_WRITER_MODE")
     py_args+=("--bridge-port=$BRIDGE_PORT")
+    py_args+=("--http-bridge-port=$HTTP_BRIDGE_PORT")
 
     log_verbose "Running: PYTHONPATH=${SVC_ROOT} python3 ${py_args[*]}"
 

@@ -983,16 +983,21 @@ class FigmaWriter(BaseWriter):
 
     Parameters
     ----------
-    mode : "script" | "bridge"
+    mode : "script" | "bridge" | "http"
         "script"  — save a self-contained .js IIFE to `output_dir`.
                     User pastes it into Figma ▶ Plugins ▶ Console.
         "bridge"  — start a local WebSocket server; Desktop Bridge executes live.
+        "http"    — use HTTP bridge server (figma-bridge-server) for live execution.
+                    This mode is symmetric with Paper (HTTP 29979) and enables
+                    any client to write to Figma via HTTP POST.
     output_dir : str | Path | None
         Where to save .js files (mode="script"). Defaults to CWD.
     bridge_port : int
         WebSocket server port (mode="bridge"). Default 9224.
+    http_bridge_port : int
+        HTTP bridge server port (mode="http"). Default 9223.
     bridge_timeout : float
-        Seconds to wait for EXECUTE_CODE response (mode="bridge").
+        Seconds to wait for EXECUTE_CODE response (mode="bridge" or "http").
     connect_timeout : float
         Seconds to wait for Desktop Bridge plugin to connect (mode="bridge").
 
@@ -1015,16 +1020,19 @@ class FigmaWriter(BaseWriter):
         bridge_port: int = 9224,
         bridge_timeout: float = 30.0,
         connect_timeout: float = 60.0,
+        http_bridge_port: int = 9223,
     ) -> None:
         super().__init__()
-        if mode not in ("script", "bridge"):
-            raise ValueError(f"mode must be 'script' or 'bridge', got {mode!r}")
+        if mode not in ("script", "bridge", "http"):
+            raise ValueError(f"mode must be 'script', 'bridge', or 'http', got {mode!r}")
         self._mode = mode
         self._output_dir = Path(output_dir) if output_dir else Path.cwd()
         self._bridge_port = bridge_port
         self._bridge_timeout = bridge_timeout
         self._connect_timeout = connect_timeout
+        self._http_bridge_port = http_bridge_port
         self._bridge: Optional[_DesktopBridge] = None
+        self._http_bridge: Optional["FigmaBridgeClient"] = None
 
     def connect(self) -> None:
         if self._mode == "bridge":
@@ -1033,11 +1041,30 @@ class FigmaWriter(BaseWriter):
                 connect_timeout=self._connect_timeout,
             )
             self._bridge.start()
+        elif self._mode == "http":
+            # Lazy import to avoid circular dependency
+            from adapters.figma.http_bridge import FigmaBridgeClient
+            self._http_bridge = FigmaBridgeClient(port=self._http_bridge_port)
+            # Check server first, then plugin
+            if not self._http_bridge.is_server_running():
+                raise RuntimeError(
+                    f"HTTP bridge server not running on port {self._http_bridge_port}.\n"
+                    f"  Start it with: python3 adapters/figma/bridge_server.py --port {self._http_bridge_port}\n"
+                    f"  Or: figma-bridge-server --port {self._http_bridge_port}"
+                )
+            if not self._http_bridge.is_connected():
+                raise RuntimeError(
+                    f"HTTP bridge server is running but Desktop Bridge plugin is not connected.\n"
+                    f"  1. Open Figma and run the Desktop Bridge plugin\n"
+                    f"  2. Configure the plugin to connect to port {self._http_bridge_port}\n"
+                    f"  3. Wait for the 'Connected' message in the plugin"
+                )
 
     def disconnect(self) -> None:
         if self._bridge:
             self._bridge.close()
             self._bridge = None
+        self._http_bridge = None
 
     def write_node(
         self,
@@ -1053,12 +1080,15 @@ class FigmaWriter(BaseWriter):
         str
             mode="script"  → absolute path to saved .js file
             mode="bridge"  → Figma node-ID of the created node
+            mode="http"    → Figma node-ID of the created node
         """
         emitter = _FigmaCodeEmitter(node, parent_id=parent_id, replace_id=replace_id)
         code = emitter.emit()
 
         if self._mode == "bridge":
             return self._write_via_bridge(code)
+        if self._mode == "http":
+            return self._write_via_http(code)
         return self._write_to_file(node, code)
 
     def _write_via_bridge(self, code: str) -> str:
@@ -1076,6 +1106,39 @@ class FigmaWriter(BaseWriter):
         if isinstance(result, dict) and not result.get("success", True):
             raise RuntimeError(f"Figma execution failed: {result.get('error', 'unknown')}")
         return (result or {}).get("nodeId", "")
+
+    def _write_via_http(self, code: str) -> str:
+        """Execute code via HTTP bridge server (figma-bridge-server)."""
+        if not self._http_bridge:
+            # Lazy init
+            from adapters.figma.http_bridge import FigmaBridgeClient
+            self._http_bridge = FigmaBridgeClient(port=self._http_bridge_port)
+
+        # Re-check connection before executing
+        if not self._http_bridge.is_server_running():
+            raise RuntimeError(
+                f"HTTP bridge server not running on port {self._http_bridge_port}.\n"
+                f"  Start it with: python3 adapters/figma/bridge_server.py --port {self._http_bridge_port}"
+            )
+        if not self._http_bridge.is_connected():
+            raise RuntimeError(
+                f"Desktop Bridge plugin not connected to HTTP bridge on port {self._http_bridge_port}.\n"
+                f"  1. Open Figma and run the Desktop Bridge plugin\n"
+                f"  2. Ensure the plugin is connected"
+            )
+
+        result = self._http_bridge.execute_code(code, timeout_ms=int(self._bridge_timeout * 1000))
+        if not result.success:
+            error_msg = result.error or "Unknown error"
+            # Check for specific error conditions
+            if "not connected" in error_msg.lower():
+                raise RuntimeError(
+                    f"Desktop Bridge plugin disconnected during execution.\n"
+                    f"  Reconnect the plugin in Figma and try again.\n"
+                    f"  Original error: {error_msg}"
+                )
+            raise RuntimeError(f"Figma HTTP bridge error: {error_msg}")
+        return result.node_id or ""
 
     def _write_to_file(self, node: UNNode, code: str) -> str:
         self._output_dir.mkdir(parents=True, exist_ok=True)

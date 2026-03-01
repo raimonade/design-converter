@@ -731,6 +731,62 @@
           </div>
         </div>
 
+        <!-- HTTP Bridge Server -->
+        <div class="section-header">
+          <h2>HTTP Bridge Server</h2>
+          <span class="tag">v1.2.0</span>
+        </div>
+        <div class="servers-grid">
+          <div class="server-card">
+            <div class="server-card__header">
+              <div class="server-card__icon">🌉</div>
+              <div>
+                <div class="server-card__name">Figma HTTP Bridge</div>
+                <div class="server-card__desc">Universal HTTP access to Figma writes. No manual copy-paste required.</div>
+              </div>
+            </div>
+            <div class="server-card__meta">
+              <span class="server-card__meta-item">Port: <span class="server-card__meta-value">9223</span></span>
+              <span class="server-card__meta-item">Endpoints: <span class="server-card__meta-value">5</span></span>
+              <span class="tag">Phase 4-6</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 32px;">
+          <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--color-text);">Available Endpoints</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+            <div style="padding: 12px; background: var(--color-bg-tertiary); border-radius: var(--radius-md);">
+              <code style="color: var(--color-emerald-400);">POST /execute</code>
+              <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 4px;">Execute JS in Figma with retry</p>
+            </div>
+            <div style="padding: 12px; background: var(--color-bg-tertiary); border-radius: var(--radius-md);">
+              <code style="color: var(--color-emerald-400);">POST /batch</code>
+              <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 4px;">Batch operations (up to 50)</p>
+            </div>
+            <div style="padding: 12px; background: var(--color-bg-tertiary); border-radius: var(--radius-md);">
+              <code style="color: var(--color-emerald-400);">POST /fonts/precache</code>
+              <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 4px;">Pre-load fonts for speed</p>
+            </div>
+            <div style="padding: 12px; background: var(--color-bg-tertiary); border-radius: var(--radius-md);">
+              <code style="color: var(--color-emerald-400);">GET /health</code>
+              <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 4px;">Plugin status + metadata</p>
+            </div>
+            <div style="padding: 12px; background: var(--color-bg-tertiary); border-radius: var(--radius-md);">
+              <code style="color: var(--color-emerald-400);">GET /status</code>
+              <p style="font-size: 12px; color: var(--color-text-muted); margin-top: 4px;">Server info</p>
+            </div>
+          </div>
+          <div style="margin-top: 16px; padding: 12px; background: var(--color-bg); border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 12px; color: var(--color-text-secondary);">
+            <span style="color: var(--color-text-muted);"># Start the bridge</span><br>
+            <span style="color: var(--color-emerald-400);">$</span> figma-bridge-server --daemon<br><br>
+            <span style="color: var(--color-text-muted);"># Execute code</span><br>
+            <span style="color: var(--color-emerald-400);">$</span> curl -X POST http://localhost:9223/execute \<br>
+            &nbsp;&nbsp;-H "Content-Type: application/json" \<br>
+            &nbsp;&nbsp;-d '{"code": "figma.notify(\"Hello!\")"}'
+          </div>
+        </div>
+
         <!-- Tools List -->
         <div class="tools-panel">
           <div class="tools-panel__header">

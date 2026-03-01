@@ -325,9 +325,15 @@ All CLI tools use consistent exit codes:
 
 ## Version
 
-**DesignDev v1.0.0**
+**DesignDev v1.2.0**
 - Created: 2026-02-28
+- Last Updated: 2026-03-01
 - Consolidated from: figma-ai-designer, Figma-AI-Plugin, Paper-design, CLI tools
+
+### Recent Changes (v1.2.0)
+- **HTTP Bridge Server**: Phase 4-6 complete — plugin discovery, error recovery, batch operations
+- **Tests**: 146 pytest tests (32 new bridge server tests)
+- **New Endpoints**: `/batch`, `/fonts/precache`, enhanced `/health`
 
 ---
 
@@ -447,6 +453,54 @@ class FigmaWriter(BaseWriter):
 - **Pencil.dev MCP**: HTTP mode (`--http --http-port 8080`)
 - **Figma**: REST API + Desktop Bridge MCP
 
+### HTTP Bridge (Universal Plug)
+
+All three platforms now have **symmetric HTTP access** for writes:
+
+| Platform | Read | Write | Protocol |
+|----------|------|-------|----------|
+| Paper | ✅ HTTP | ✅ HTTP | `localhost:29979` |
+| Pencil | ✅ MCP | ✅ MCP | MCP `batch_design` |
+| Figma | ✅ REST | ✅ HTTP | `localhost:9223` |
+
+**Starting the Figma HTTP Bridge:**
+```bash
+# Start bridge server (one-time setup)
+figma-bridge-server --daemon
+
+# Check status
+figma-bridge-server --status
+
+# Now any HTTP client can write to Figma
+curl -X POST http://localhost:9223/execute \
+  -H "Content-Type: application/json" \
+  -d '{"code": "figma.notify(\"Hello!\")"}'
+
+# Batch operations (Phase 6)
+curl -X POST http://localhost:9223/batch \
+  -H "Content-Type: application/json" \
+  -d '{"operations": [{"code": "..."}, {"code": "..."}]}'
+
+# Font pre-caching (Phase 6)
+curl -X POST http://localhost:9223/fonts/precache \
+  -H "Content-Type: application/json" \
+  -d '{"fonts": ["Inter", "Roboto"]}'
+
+# Health check with plugin info (Phase 4)
+curl http://localhost:9223/health
+```
+
+**Features:**
+- **Phase 4: Plugin Discovery** — Auto-detect plugin connect/disconnect, health endpoint with plugin metadata
+- **Phase 5: Error Recovery** — Retry with exponential backoff (1.5s → 3s → 6s), helpful error messages with suggestions
+- **Phase 6: Performance** — Batch operations (`/batch`), font pre-caching (`/fonts/precache`)
+
+**Files:**
+- `adapters/figma/bridge_server.py` — HTTP + WebSocket server (700+ lines)
+- `adapters/figma/http_bridge.py` — HTTP client
+- `cli/bin/figma-bridge-server` — CLI wrapper
+- `tests/test_bridge_server.py` — 32 tests for bridge server
+
 ### Usage
 
 ```python
@@ -474,5 +528,7 @@ paper_writer.write_node(unnode_tree, output_path="./output")
 | Pencil Adapter | ✅ Complete |
 | Figma Reader | ✅ Complete |
 | Figma Writer | ✅ Complete |
+| HTTP Bridge Server | ✅ Complete |
 | Main Converter (`converter.py`) | ✅ Complete |
 | CLI Integration (`cli/bin/design-convert.sh`) | ✅ Complete |
+| pytest Test Suite | ✅ Complete (114 tests) |

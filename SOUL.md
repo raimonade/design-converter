@@ -42,8 +42,13 @@ Figma ←→ UNNode (IR) ←→ Paper
            Pencil
 ```
 - **IR**: `ir/nodes.py` — UNNode dataclass tree, all enums, factory helpers, serialisation
-- **Adapters**: Figma (REST read + Plugin JS write), Paper (MCP JSON-RPC), Pencil (HTTP REST)
+- **Adapters**: Figma (REST read + HTTP write), Paper (MCP JSON-RPC), Pencil (MCP tools)
+- **HTTP Bridge**: `localhost:9223` — symmetric write access to all platforms
+  - **Phase 4**: Plugin Discovery — auto-detect connect/disconnect, health endpoint with plugin metadata
+  - **Phase 5**: Error Recovery — retry with exponential backoff, helpful error messages
+  - **Phase 6**: Performance — batch operations (`/batch`), font pre-caching (`/fonts/precache`)
 - **Utils**: `utils/tokens.py` — W3C DTCG 2025.10 design token export
+- **Tests**: 146 pytest tests covering all adapters, utilities, and bridge server
 
 ### Skills
 - **UI-UX-Pro-Max** (`skills/ui-ux-pro-max/`) — Design intelligence with 13 CSV databases
@@ -152,8 +157,9 @@ See `CLAUDE.md` and `AGENTS.md` for the full lookup table.
 - 100% reproducible design-to-code workflows
 - Zero manual token extraction
 - Integrated design converter with full round-trip fidelity
+- HTTP Bridge for universal Figma writes (no manual copy-paste)
 
 ---
 
 **Last Updated:** 2026-03-01
-**Version:** 1.1.0
+**Version:** 1.2.0

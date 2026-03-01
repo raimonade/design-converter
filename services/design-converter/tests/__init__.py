@@ -1,6 +1,6 @@
 """
-Design Converter Tests
+Tests for the design-converter service.
 
-Unit and integration tests for the UNNode IR and adapters.
-Run with: python3 -m pytest tests/ -v
+Run with:
+    cd services/design-converter && python3 -m pytest tests/ -v
 """

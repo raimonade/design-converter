@@ -215,6 +215,7 @@ class DesignConverter:
         figma_token: Optional[str] = None,
         figma_writer_mode: str = "script",
         figma_bridge_port: int = 9224,
+        figma_http_bridge_port: int = 9223,
         figma_bridge_timeout: float = 30.0,
         figma_connect_timeout: float = 60.0,
         figma_output_dir: Optional[str] = None,
@@ -223,6 +224,7 @@ class DesignConverter:
         self._figma_writer_opts: Dict[str, Any] = {
             "mode": figma_writer_mode,
             "bridge_port": figma_bridge_port,
+            "http_bridge_port": figma_http_bridge_port,
             "bridge_timeout": figma_bridge_timeout,
             "connect_timeout": figma_connect_timeout,
             "output_dir": figma_output_dir,
@@ -543,12 +545,14 @@ def _build_parser() -> argparse.ArgumentParser:
     # Figma writer options.
     p.add_argument(
         "--figma-writer-mode",
-        choices=["script", "bridge"],
+        choices=["script", "bridge", "http"],
         default="script",
-        help="FigmaWriter mode: 'script' saves a .js file; 'bridge' executes live (default: script)",
+        help="FigmaWriter mode: 'script' saves .js; 'bridge' starts WebSocket; 'http' uses bridge server (default: script)",
     )
     p.add_argument("--bridge-port", type=int, default=9224,
                    help="WebSocket bridge port for bridge mode (default: 9224)")
+    p.add_argument("--http-bridge-port", type=int, default=9223,
+                   help="HTTP bridge port for http mode (default: 9223)")
     p.add_argument("--figma-token", default=None, metavar="TOKEN",
                    help="Figma API token (overrides FIGMA_API_KEY env var)")
     p.add_argument("--output-dir", default=None, metavar="DIR",
@@ -597,6 +601,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         figma_token=args.figma_token,
         figma_writer_mode=args.figma_writer_mode,
         figma_bridge_port=args.bridge_port,
+        figma_http_bridge_port=args.http_bridge_port,
         figma_output_dir=args.output_dir,
     )
 

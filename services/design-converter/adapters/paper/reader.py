@@ -503,6 +503,11 @@ class JsxParser:
             self._src,
             flags=re.DOTALL | re.MULTILINE,
         )
+        # Paper wraps JSX in parentheses: ( <div>...</div> )
+        # Strip leading/trailing parentheses
+        self._src = self._src.strip()
+        if self._src.startswith("(") and self._src.endswith(")"):
+            self._src = self._src[1:-1].strip()
         self._pos = 0
         self._skip_whitespace()
         return self._parse_element()
@@ -1433,8 +1438,9 @@ class PaperReader(BaseReader):
         host: str = "127.0.0.1",
         port: int = 29979,
         jsx_mode: str = "inline-styles",
+        use_sse: bool = False,  # Default to direct mode (more reliable)
     ) -> None:
-        self._client = PaperClient(host=host, port=port)
+        self._client = PaperClient(host=host, port=port, use_sse=use_sse)
         self._jsx_mode = jsx_mode
 
     # ── Lifecycle ──────────────────────────────────────────────────────────

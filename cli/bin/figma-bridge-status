@@ -1,0 +1,165 @@
+#!/usr/bin/env python3
+"""
+figma-bridge-status - Check Figma HTTP Bridge Server status
+
+Usage:
+    figma-bridge-status           # Human-readable status
+    figma-bridge-status --json    # JSON output
+    figma-bridge-status --wait    # Wait for plugin to connect
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+import time
+from typing import Any, Dict
+
+# Add service path
+import os
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+_SVC_ROOT = os.path.join(_SCRIPT_DIR, "..", "..", "services", "design-converter")
+if os.path.exists(_SVC_ROOT):
+    sys.path.insert(0, _SVC_ROOT)
+
+try:
+    from adapters.figma.http_bridge import FigmaBridgeClient
+except ImportError:
+    # Fallback: direct HTTP check
+    import urllib.request
+    import urllib.error
+
+    class FigmaBridgeClient:
+        """Minimal fallback client."""
+        def __init__(self, host: str = "127.0.0.1", port: int = 9223):
+            self._host = host
+            self._port = port
+            self._base = f"http://{host}:{port}"
+
+        def _get(self, path: str) -> Dict[str, Any]:
+            url = f"{self._base}{path}"
+            req = urllib.request.Request(url, method="GET")
+            req.add_header("Accept", "application/json")
+            with urllib.request.urlopen(req, timeout=5.0) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+
+        def is_server_running(self) -> bool:
+            try:
+                resp = self._get("/health")
+                return resp.get("status") == "ok"
+            except Exception:
+                return False
+
+        def is_connected(self) -> bool:
+            try:
+                resp = self._get("/health")
+                return resp.get("status") == "ok" and resp.get("plugin_connected", False)
+            except Exception:
+                return False
+
+        def get_status(self) -> Dict[str, Any]:
+            try:
+                return self._get("/status")
+            except urllib.error.URLError as e:
+                return {
+                    "status": "error",
+                    "error": f"Server not running: {e.reason}",
+                    "port": self._port,
+                    "server_running": False,
+                    "plugin_connected": False,
+                }
+            except Exception as e:
+                return {
+                    "status": "error",
+                    "error": str(e),
+                    "port": self._port,
+                    "server_running": False,
+                    "plugin_connected": False,
+                }
+
+
+def print_status(client: FigmaBridgeClient, *, json_mode: bool = False, verbose: bool = False) -> int:
+    """Print bridge status. Returns exit code."""
+    status = client.get_status()
+
+    if json_mode:
+        print(json.dumps(status, indent=2))
+        return 0 if status.get("status") == "ok" else 2
+
+    # Human-readable output
+    server_running = status.get("status") == "ok"
+    plugin_connected = status.get("plugin_connected", False)
+
+    if server_running:
+        print(f"Server:     http://127.0.0.1:{client._port}")
+        print(f"Status:     Running")
+        print(f"Plugin:     {'Connected' if plugin_connected else 'NOT CONNECTED'}")
+        if plugin_connected:
+            plugin_info = status.get("plugin", {})
+            if plugin_info.get("connected_at"):
+                print(f"Connected:  {plugin_info['connected_at']}")
+            if plugin_info.get("version"):
+                print(f"Version:    {plugin_info['version']}")
+        print(f"Pending:    {status.get('pending_requests', 0)} request(s)")
+        if verbose:
+            print(f"PID:        {status.get('pid', 'unknown')}")
+        return 0 if plugin_connected else 1
+    else:
+        error = status.get("error", "Unknown error")
+        print(f"Server:     NOT RUNNING", file=sys.stderr)
+        print(f"Error:      {error}", file=sys.stderr)
+        print(f"", file=sys.stderr)
+        print(f"Start with: figma-bridge-server --port {client._port}", file=sys.stderr)
+        return 2
+
+
+def wait_for_plugin(client: FigmaBridgeClient, timeout: float = 30.0) -> int:
+    """Wait for plugin to connect. Returns exit code."""
+    print(f"Waiting for plugin to connect (timeout: {timeout}s)...")
+    deadline = time.time() + timeout
+    dots = 0
+    while time.time() < deadline:
+        if client.is_connected():
+            print(f"\nPlugin connected!")
+            return 0
+        dots = (dots + 1) % 4
+        print(f"\r  Waiting{'.' * dots}    ", end="", flush=True)
+        time.sleep(0.5)
+    print(f"\nTimeout: Plugin did not connect within {timeout}s")
+    return 1
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Check Figma Bridge server status",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Exit codes:
+  0  Server running and plugin connected
+  1  Server running but plugin NOT connected
+  2  Server not running
+
+Examples:
+  figma-bridge-status
+  figma-bridge-status --json
+  figma-bridge-status --wait --timeout 60
+"""
+    )
+    parser.add_argument("--json", action="store_true", help="Output as JSON")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
+    parser.add_argument("--wait", action="store_true", help="Wait for plugin to connect")
+    parser.add_argument("--timeout", type=float, default=30.0, help="Wait timeout in seconds")
+    parser.add_argument("--port", type=int, default=9223, help="Bridge server port")
+    args = parser.parse_args()
+
+    client = FigmaBridgeClient(port=args.port)
+
+    if args.wait:
+        return wait_for_plugin(client, timeout=args.timeout)
+
+    return print_status(client, json_mode=args.json, verbose=args.verbose)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

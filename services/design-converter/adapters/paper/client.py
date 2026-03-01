@@ -70,23 +70,62 @@ def _make_rpc(method: str, params: Any, rpc_id: str) -> bytes:
 
 
 def _post(
-    url: str, body: bytes, headers: Optional[Dict[str, str]] = None
+    url: str,
+    body: bytes,
+    headers: Optional[Dict[str, str]] = None,
+    timeout: float = _TIMEOUT_S,
 ) -> Dict[str, Any]:
     """
     Synchronous HTTP POST.  Returns the parsed JSON body.
     Raises PaperConnectionError on network failure.
+
+    Paper MCP returns SSE format even for direct POST to /mcp:
+        event: message
+        data: {"result":{...},"jsonrpc":"2.0","id":"..."}
+
+    This function parses both SSE and plain JSON responses.
     """
     req = Request(url, data=body, method="POST")
     req.add_header("Content-Type", "application/json")
-    req.add_header("Accept", "application/json")
+    req.add_header("Accept", "application/json, text/event-stream")
     for k, v in (headers or {}).items():
         req.add_header(k, v)
     try:
-        with urlopen(req, timeout=_TIMEOUT_S) as resp:
+        with urlopen(req, timeout=timeout) as resp:
             raw = resp.read()
-            return json.loads(raw) if raw else {}
+            if not raw:
+                return {}
+            raw_str = raw.decode("utf-8", errors="replace")
+            # Parse SSE format: look for "data: {...}" lines
+            # SSE can have multiple data lines - concatenate them
+            data_lines = []
+            for line in raw_str.split("\n"):
+                line = line.rstrip("\r")
+                if line.startswith("data:"):
+                    data_str = line[5:].strip()
+                    if data_str:
+                        data_lines.append(data_str)
+            if data_lines:
+                # Join multiple data lines and parse as single JSON
+                combined = "\n".join(data_lines)
+                try:
+                    return json.loads(combined)
+                except json.JSONDecodeError:
+                    # Try each line individually (some servers send one JSON per line)
+                    for dl in data_lines:
+                        try:
+                            return json.loads(dl)
+                        except json.JSONDecodeError:
+                            continue
+            # Fall back to plain JSON if no SSE data lines
+            raw_str_stripped = raw_str.strip()
+            if raw_str_stripped:
+                return json.loads(raw_str_stripped)
+            return {}
     except URLError as exc:
         raise PaperConnectionError(f"Cannot reach Paper MCP: {exc.reason}") from exc
+    except json.JSONDecodeError as exc:
+        raise PaperConnectionError(f"Invalid JSON response from Paper MCP: {exc}") from exc
     except Exception as exc:
         raise PaperConnectionError(str(exc)) from exc
 
@@ -182,24 +221,46 @@ class _SSESession:
         if not line or line.startswith(":"):
             return  # heartbeat / comment
 
+        # Handle event: lines (track current event type)
+        if line.startswith("event:"):
+            # We could track event type if needed, but for now ignore
+            return
+
         if line.startswith("data:"):
             data_str = line[5:].strip()
+            if not data_str:
+                return
+
+            # First, try to parse as JSON
             try:
                 data = json.loads(data_str)
             except json.JSONDecodeError:
-                # Might be the plain session-ID handshake line
-                if not self._session_id and data_str.startswith("/messages"):
-                    # Extract sessionId from the endpoint URL hint
+                # Not JSON - might be the plain session-ID handshake line
+                # Paper Desktop sends: "data: /messages?sessionId=XXXXX"
+                if not self._session_id:
+                    # Try to extract sessionId from URL-style data
                     m = re.search(r"sessionId=([^&\s]+)", data_str)
                     if m:
                         self._session_id = m.group(1)
+                        self._connected.set()
+                    # Also try if data_str IS the session ID directly
+                    elif data_str and not data_str.startswith("/"):
+                        # Some versions send just the session ID as data
+                        self._session_id = data_str
                         self._connected.set()
                 return
 
             # Session handshake from some server versions
             if isinstance(data, dict):
-                if "sessionId" in data:
-                    self._session_id = data["sessionId"]
+                # Check various session ID field names
+                session_id = (
+                    data.get("sessionId") or
+                    data.get("session_id") or
+                    data.get("id") or
+                    data.get("session")
+                )
+                if session_id:
+                    self._session_id = str(session_id)
                     self._connected.set()
                     return
                 # JSON-RPC response
@@ -218,9 +279,8 @@ class PaperClient:
     """
     High-level client for the Paper Design Desktop MCP server.
 
-    Transport auto-detection:
-      1. Try SSE transport (GET /sse + POST /messages)
-      2. Fall back to direct POST transport (POST /mcp)
+    By default uses direct POST transport (POST /mcp) which is simpler
+    and more reliable than SSE. SSE can be enabled if needed.
 
     Parameters
     ----------
@@ -228,8 +288,9 @@ class PaperClient:
         Hostname of the Paper Desktop HTTP server. Default "127.0.0.1".
     port : int
         Port of the Paper Desktop HTTP server. Default 29979.
-    use_sse : bool | None
-        Force SSE (True) or direct POST (False).  None = auto-detect.
+    use_sse : bool
+        Force SSE (True) or direct POST (False).  Default is False.
+        Direct mode is recommended as it's simpler and more reliable.
     """
 
     DEFAULT_HOST = "127.0.0.1"
@@ -239,11 +300,12 @@ class PaperClient:
         self,
         host: str = DEFAULT_HOST,
         port: int = DEFAULT_PORT,
-        use_sse: Optional[bool] = None,
+        use_sse: bool = False,
     ) -> None:
         self._base = f"http://{host}:{port}"
-        self._use_sse = use_sse  # None → auto-detect on first call
+        self._use_sse = use_sse
         self._session: Optional[_SSESession] = None
+        self._connected = False
 
     # ── Context manager ────────────────────────────────────────────────────
 
@@ -256,41 +318,61 @@ class PaperClient:
 
     # ── Connection lifecycle ────────────────────────────────────────────────
 
-    def connect(self) -> None:
+    def connect(self, timeout: float = 10.0) -> None:
         """
         Verify Paper Desktop is running and initialise the preferred transport.
-        Raises PaperConnectionError if Paper Desktop is not reachable.
+
+        Parameters
+        ----------
+        timeout : float
+            Connection timeout in seconds. Default 10.0.
+
+        Raises
+        ------
+        PaperConnectionError
+            If Paper Desktop is not reachable within the timeout.
         """
-        if self._use_sse is False:
-            self._ping_direct()
+        if self._connected:
             return
 
-        # Try SSE first; fall back to direct POST on failure
+        if not self._use_sse:
+            self._ping_direct(timeout=timeout)
+            self._connected = True
+            return
+
+        # SSE mode - try SSE first; fall back to direct POST on failure
         try:
             self._session = _SSESession(self._base)
-            self._session.start()
-            self._use_sse = True
-        except Exception:
+            session_id = self._session.start()
+            # Verify we actually got a valid session ID
+            if not session_id:
+                raise PaperConnectionError("SSE did not provide a valid session ID")
+            self._connected = True
+        except Exception as e:
             # SSE failed — try direct POST transport
             self._session = None
             try:
-                self._ping_direct()
+                self._ping_direct(timeout=timeout)
                 self._use_sse = False
+                self._connected = True
             except PaperConnectionError:
                 raise PaperConnectionError(
                     f"Paper Desktop MCP server not reachable at {self._base}. "
-                    "Is Paper Desktop running?"
+                    "Is Paper Desktop running? (SSE error: {e})"
                 )
 
     def disconnect(self) -> None:
         if self._session:
             self._session.stop()
             self._session = None
+        self._connected = False
 
     def is_connected(self) -> bool:
         """Quick liveness check (does not raise)."""
+        if not self._connected:
+            return False
         try:
-            self._ping_direct()
+            self._ping_direct(timeout=5.0)
             return True
         except Exception:
             return False
@@ -319,7 +401,7 @@ class PaperClient:
             rpc_id,
         )
 
-        if self._use_sse is None:
+        if not self._connected:
             self.connect()
 
         if self._use_sse:
@@ -334,24 +416,27 @@ class PaperClient:
     def _call_via_sse(self, rpc_id: str, body: bytes) -> Dict[str, Any]:
         """POST to /messages and await response on the SSE stream."""
         assert self._session is not None
+        session_id = self._session._session_id
+        if not session_id:
+            raise PaperConnectionError("SSE session ID not available")
         url = f"{self._base}/messages"
-        headers = {"mcp-session-id": self._session._session_id}
+        headers = {"mcp-session-id": session_id}
         try:
             _post(url, body, headers=headers)
         except PaperConnectionError as exc:
             raise exc
         return self._session.wait_for(rpc_id)
 
-    def _call_direct(self, body: bytes) -> Dict[str, Any]:
+    def _call_direct(self, body: bytes, timeout: float = _TIMEOUT_S) -> Dict[str, Any]:
         """POST directly to /mcp (simple synchronous transport)."""
         url = f"{self._base}/mcp"
-        return _post(url, body)
+        return _post(url, body, timeout=timeout)
 
-    def _ping_direct(self) -> None:
+    def _ping_direct(self, timeout: float = _TIMEOUT_S) -> None:
         """Lightweight ping to verify the server is alive."""
         body = _make_rpc("tools/list", {}, _next_id())
         try:
-            resp = _post(f"{self._base}/mcp", body)
+            resp = _post(f"{self._base}/mcp", body, timeout=timeout)
             # Accept any non-error response
             if "error" in resp and resp["error"].get("code", 0) not in (-32601,):
                 raise PaperConnectionError(str(resp["error"]))
@@ -602,6 +687,8 @@ class PaperClient:
         Return the list of tools advertised by this Paper MCP server.
         Useful for capability detection.
         """
+        if not self._connected:
+            self.connect()
         rpc_id = _next_id()
         body = _make_rpc("tools/list", {}, rpc_id)
         if self._use_sse:
@@ -657,7 +744,6 @@ class PaperClient:
     # ── Diagnostics ────────────────────────────────────────────────────────
 
     def __repr__(self) -> str:
-        transport = (
-            "SSE" if self._use_sse else "direct" if self._use_sse is False else "?"
-        )
-        return f"<PaperClient base={self._base!r} transport={transport}>"
+        transport = "SSE" if self._use_sse else "direct"
+        status = "connected" if self._connected else "disconnected"
+        return f"<PaperClient base={self._base!r} transport={transport} status={status}>"

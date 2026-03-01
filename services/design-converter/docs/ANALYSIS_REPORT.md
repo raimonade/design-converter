@@ -84,12 +84,13 @@ Figma ←→ UNNode (IR) ←→ Paper
 
 The Figma Writer (`adapters/figma/writer.py`, 1,101 lines) is **more complete than initially documented**. Key findings:
 
-#### 3.1.1 Two-Mode Architecture
+#### 3.1.1 Three-Mode Architecture
 
 | Mode | Mechanism | Use Case |
 |------|-----------|----------|
 | **script** | Generates `.js` IIFE file | One-off conversions, debugging |
 | **bridge** | WebSocket server (port 9224) | Automated pipelines, MCP tools |
+| **http** | HTTP bridge server (port 9223) | Universal access, any HTTP client |
 
 #### 3.1.2 Code Generation Quality
 
@@ -110,6 +111,29 @@ The `_DesktopBridge` class is a **pure stdlib implementation**:
 - ✅ Proper handshake handling
 - ✅ JSON-RPC message format
 - ✅ Timeout and error handling
+
+#### 3.1.4 HTTP Bridge Server (Universal Plug)
+
+The HTTP Bridge Server (`adapters/figma/bridge_server.py`) provides **symmetric access** to Figma writes:
+
+| Platform | Read | Write | Protocol |
+|----------|------|-------|----------|
+| **Paper** | ✅ HTTP | ✅ HTTP | `localhost:29979` |
+| **Pencil** | ✅ MCP | ✅ MCP | MCP tools (`batch_design`) |
+| **Figma** | ✅ REST | ✅ HTTP | `localhost:9223` (via bridge) |
+
+**Key Features**:
+- HTTP API for code execution (`POST /execute`)
+- Health endpoint (`GET /health`) with plugin status
+- WebSocket proxy to Desktop Bridge plugin
+- Auto-discovery on ports 9223-9232
+- No manual copy-paste required
+
+**Files**:
+- `adapters/figma/bridge_server.py` — HTTP + WebSocket server
+- `adapters/figma/http_bridge.py` — HTTP client
+- `cli/bin/figma-bridge-server` — CLI wrapper
+- `docs/UNIVERSAL_PLUG.md` — Full documentation
 
 ### 3.2 What's Implemented (vs Documentation)
 
@@ -332,12 +356,25 @@ with writer:
 
 ---
 
-*Document Version: 1.1.0*  
+*Document Version: 1.3.0*
 *Last Updated: 2026-03-01*
 
 ---
 
 ## Changelog
+
+### v1.3.0 (2026-03-01)
+- Added Phase 4: Plugin Discovery — auto-detect connect/disconnect, health endpoint with plugin metadata
+- Added Phase 5: Error Recovery — retry with exponential backoff, helpful error messages
+- Added Phase 6: Performance — batch operations (`/batch`), font pre-caching (`/fonts/precache`)
+- Added 32 new bridge server tests (146 total)
+- Added `test_bridge_server.py` — comprehensive bridge server unit tests
+
+### v1.2.0 (2026-03-01)
+- Added HTTP Bridge Server (Universal Plug) documentation
+- Updated Figma Writer to three-mode architecture (script/bridge/http)
+- Added 114 pytest tests for all adapters and utilities
+- Marked all phases complete
 
 ### v1.1.0 (2026-03-01)
 - Added full repo structure analysis
