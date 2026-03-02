@@ -87,28 +87,39 @@ def _escape_string(s: str) -> str:
     return s
 
 
-def _color_to_hex(color: UNColor) -> str:
-    """Convert UNColor to hex string (#RRGGBB or #RRGGBBAA)."""
+def _color_to_hex(color: UNColor, include_alpha: bool = True) -> str:
+    """Convert UNColor to hex string (#RRGGBB) or rgba() if alpha < 1.
+
+    Pencil doesn't support #RRGGBBAA format, so we use rgba() for transparent colors.
+    """
     r = int(round(color.r * 255))
     g = int(round(color.g * 255))
     b = int(round(color.b * 255))
     a = color.a
 
-    if a >= 1.0:
+    if a >= 1.0 or not include_alpha:
         return f"#{r:02X}{g:02X}{b:02X}"
     else:
-        ai = int(round(a * 255))
-        return f"#{r:02X}{g:02X}{b:02X}{ai:02X}"
+        # Use rgba() format for transparency - Pencil doesn't support #RRGGBBAA
+        return f"rgba({r},{g},{b},{a:.3f})"
 
 
-def _sizing_to_pencil(mode: SizingMode, value: float) -> str:
-    """Convert UNSize sizing mode to Pencil sizing string."""
+def _sizing_to_pencil(mode: SizingMode, value: float, min_size: float = 100.0) -> str:
+    """Convert UNSize sizing mode to Pencil sizing string.
+
+    Args:
+        mode: The sizing mode (FIXED, FILL, HUG)
+        value: The size value
+        min_size: Minimum size to use for HUG mode when value is 0 (default: 100)
+    """
     if mode == SizingMode.FIXED:
         return str(round(value, 2))
     elif mode == SizingMode.FILL:
         return '"fill_container"'
     elif mode == SizingMode.HUG:
-        return f'"fit_content({int(round(value))})"'
+        # fit_content(0) doesn't work in Pencil - use a reasonable minimum
+        effective_value = max(value, min_size) if value <= 0 else value
+        return f'"fit_content({int(round(effective_value))})"'
     else:
         return str(round(value, 2))
 
@@ -158,22 +169,40 @@ def _align_to_pencil(align: AlignItems) -> str:
 
 
 def _build_fill(fill: Union[UNSolidFill, UNGradientFill, UNImageFill]) -> str:
-    """Build a fill expression for Pencil."""
+    """Build a fill expression for Pencil batch_design.
+
+    For solid fills: returns a hex color string.
+    For gradient fills: uses first stop color (gradients not well-supported in batch_design).
+    For image fills: returns transparent (image should be applied via G() op).
+    """
     if isinstance(fill, UNSolidFill):
         if fill.color:
             return f'"{_color_to_hex(fill.color)}"'
         return '"#FFFFFF"'
 
     elif isinstance(fill, UNGradientFill):
-        # Gradient fills are complex - use color as fallback for now
+        # Pencil batch_design doesn't support gradient objects well
+        # Use the first stop color as approximation
         if fill.stops and fill.stops[0].color:
-            return f'"{_color_to_hex(fill.stops[0].color)}"'
+            base_color = fill.stops[0].color
+            # Apply fill-level opacity to the color
+            if fill.opacity < 1.0 and base_color.a >= 1.0:
+                # Create a new color with opacity applied
+                from ir.nodes import UNColor
+                color_with_opacity = UNColor(
+                    r=base_color.r,
+                    g=base_color.g,
+                    b=base_color.b,
+                    a=fill.opacity
+                )
+                return f'"{_color_to_hex(color_with_opacity)}"'
+            return f'"{_color_to_hex(base_color)}"'
         return '"#FFFFFF"'
 
     elif isinstance(fill, UNImageFill):
         # Image fills need to be applied separately via G() operation
-        # Return transparent for now
-        return '"#FFFFFF00"'
+        # Return transparent for now (rgba format)
+        return '"rgba(255,255,255,0)"'
 
     return '"#FFFFFF"'
 
@@ -181,7 +210,7 @@ def _build_fill(fill: Union[UNSolidFill, UNGradientFill, UNImageFill]) -> str:
 def _build_fills(fills: List[Union[UNSolidFill, UNGradientFill, UNImageFill]]) -> str:
     """Build fills array or single fill."""
     if not fills:
-        return '"#FFFFFF00"'  # Transparent
+        return '"rgba(255,255,255,0)"'  # Transparent
 
     # Use first fill
     return _build_fill(fills[0])

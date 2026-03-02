@@ -1649,7 +1649,8 @@ BaseWriter interface:
 │   └── <span class="dir">pencil/</span>
 │       ├── <span class="file">client.py</span>        <span class="note"># PencilClient — HTTP REST MCP (:19002)</span>
 │       ├── <span class="file">reader.py</span>        <span class="note"># PencilReader — Pencil JSON → UNNode</span>
-│       └── <span class="file">writer.py</span>        <span class="note"># PencilWriter — UNNode → Pencil API calls</span>
+│       ├── <span class="file">writer.py</span>        <span class="note"># PencilWriter — UNNode → Pencil API calls</span>
+│       └── <span class="file">ops.py</span>          <span class="note"># batch_design script builder (I/C/R/U/D/G ops)</span>
 ├── <span class="dir">utils/</span>
 │   ├── <span class="file">__init__.py</span>          <span class="note"># Re-exports all utilities</span>
 │   ├── <span class="file">color.py</span>             <span class="note"># Color conversion (hex, rgb, hsl, Figma, oklab)</span>
@@ -1775,6 +1776,11 @@ BaseWriter interface:
   <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
   <tbody>
     <tr>
+      <td>1.0.1</td>
+      <td>2026-03-02</td>
+      <td>Pencil: Fixed 8-digit hex (#RRGGBBAA) → rgba() format for transparent colors (Pencil variable system doesn't support 8-digit hex)</td>
+    </tr>
+    <tr>
       <td>1.0.0</td>
       <td>2026-03-01</td>
       <td>Phase 1 complete: all field bugs fixed, UNTextRun, DTCG tokens, variable bindings wired, this doc</td>
@@ -1790,7 +1796,7 @@ BaseWriter interface:
 
 <div class="doc-footer">
   <span>UNNODE_DEEP_DIVE.html · DesignDev/services/design-converter/docs</span>
-  <span>v1.0.0 · 2026-03-01</span>
+  <span>v1.0.1 · 2026-03-02</span>
 </div>
 
 </section>

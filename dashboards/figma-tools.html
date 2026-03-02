@@ -1496,7 +1496,8 @@ BaseWriter interface:
 │   └── <span class="dir">pencil/</span>
 │       ├── <span class="file">client.py</span>        <span class="note"># PencilClient — HTTP REST MCP (:19002)</span>
 │       ├── <span class="file">reader.py</span>        <span class="note"># PencilReader — Pencil JSON → UNNode</span>
-│       └── <span class="file">writer.py</span>        <span class="note"># PencilWriter — UNNode → Pencil API calls</span>
+│       ├── <span class="file">writer.py</span>        <span class="note"># PencilWriter — UNNode → Pencil API calls</span>
+│       └── <span class="new">ops.py</span>            <span class="note"># ← NEW batch_design script builder (rgba() for transparent colors)</span>
 ├── <span class="dir">utils/</span>
 │   ├── <span class="file">color.py</span>             <span class="note"># Color conversion (hex, rgb, hsl, Figma, oklab)</span>
 │   ├── <span class="file">css.py</span>               <span class="note"># CSS / Tailwind generation from UNNode</span>
@@ -1565,6 +1566,7 @@ BaseWriter interface:
               <table class="changelog">
                 <thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead>
                 <tbody>
+                  <tr><td>1.0.1</td><td>2026-03-02</td><td>Pencil ops.py: fixed 8-digit hex (#RRGGBBAA) → rgba() for transparent colors (Pencil variable system compatibility)</td></tr>
                   <tr><td>1.0.0</td><td>2026-03-01</td><td>Phase 1 complete: field bugs fixed, UNTextRun, DTCG tokens, variable bindings wired, docs combined into figma-tools.html</td></tr>
                   <tr><td>0.9.0</td><td>2026-02-28</td><td>Initial IR + all adapters (Figma reader/writer, Paper, Pencil)</td></tr>
                 </tbody>
@@ -1573,7 +1575,7 @@ BaseWriter interface:
 
             <div class="ir-footer">
               <span>UNNode IR Reference · DesignDev/dashboards/figma-tools.html</span>
-              <span>v1.0.0 · 2026-03-01</span>
+              <span>v1.0.1 · 2026-03-02</span>
             </div>
           </section>
 
