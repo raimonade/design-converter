@@ -1,0 +1,39 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read(./**)",
+      "Write(./**)",
+      "Edit(./**)",
+      "Glob(./**)",
+      "Grep(./**)",
+      "Read(/Users/william/Projects Parent Folder/DesignDev/.auto-claude/worktrees/tasks/002-fix-bridge-server-timeout-bug/**)",
+      "Write(/Users/william/Projects Parent Folder/DesignDev/.auto-claude/worktrees/tasks/002-fix-bridge-server-timeout-bug/**)",
+      "Edit(/Users/william/Projects Parent Folder/DesignDev/.auto-claude/worktrees/tasks/002-fix-bridge-server-timeout-bug/**)",
+      "Glob(/Users/william/Projects Parent Folder/DesignDev/.auto-claude/worktrees/tasks/002-fix-bridge-server-timeout-bug/**)",
+      "Grep(/Users/william/Projects Parent Folder/DesignDev/.auto-claude/worktrees/tasks/002-fix-bridge-server-timeout-bug/**)",
+      "Read(/Users/william/Projects Parent Folder/DesignDev/.auto-claude/worktrees/tasks/002-fix-bridge-server-timeout-bug/.auto-claude/specs/002-fix-bridge-server-timeout-bug/**)",
+      "Write(/Users/william/Projects Parent Folder/DesignDev/.auto-claude/worktrees/tasks/002-fix-bridge-server-timeout-bug/.auto-claude/specs/002-fix-bridge-server-timeout-bug/**)",
+      "Edit(/Users/william/Projects Parent Folder/DesignDev/.auto-claude/worktrees/tasks/002-fix-bridge-server-timeout-bug/.auto-claude/specs/002-fix-bridge-server-timeout-bug/**)",
+      "Read(/Users/william/Projects Parent Folder/DesignDev/.auto-claude/**)",
+      "Write(/Users/william/Projects Parent Folder/DesignDev/.auto-claude/**)",
+      "Edit(/Users/william/Projects Parent Folder/DesignDev/.auto-claude/**)",
+      "Glob(/Users/william/Projects Parent Folder/DesignDev/.auto-claude/**)",
+      "Grep(/Users/william/Projects Parent Folder/DesignDev/.auto-claude/**)",
+      "Bash(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__context7__resolve-library-id(*)",
+      "mcp__context7__query-docs(*)",
+      "mcp__graphiti-memory__search_nodes(*)",
+      "mcp__graphiti-memory__search_facts(*)",
+      "mcp__graphiti-memory__add_episode(*)",
+      "mcp__graphiti-memory__get_episodes(*)",
+      "mcp__graphiti-memory__get_entity_edge(*)"
+    ]
+  }
+}

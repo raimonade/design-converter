@@ -68,3 +68,6 @@ temp/
 # OS files
 Thumbs.db
 Desktop.ini
+
+# Auto Claude data directory
+.auto-claude/
