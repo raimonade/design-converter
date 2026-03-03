@@ -688,7 +688,100 @@ This section provides a comprehensive view of component implementation status, f
 
 ## 7. Known Issues
 
-(Placeholder - to be populated in subsequent subtasks)
+This section documents known bugs, limitations, and workarounds in the design-converter ecosystem.
+
+### 7.1 HTTP Bridge Timeout Bug (BRIDGE-001)
+
+**Status:** 🔴 Open · **Severity:** High · **Affected Mode:** HTTP (bridge_server.py)
+
+#### Description
+
+The HTTP bridge server (`bridge_server.py`) may fail to return responses within the expected timeout window when executing long-running Figma operations. This manifests as `Gateway Timeout (504)` errors even when the Figma plugin successfully completes the operation.
+
+#### Root Cause
+
+The `_send_to_plugin()` method in `bridge_server.py` adds a fixed 5-second buffer to the client-requested timeout:
+
+```python
+# Line 492 in bridge_server.py
+result = await asyncio.wait_for(future, timeout=timeout_ms / 1000 + 5)
+```
+
+This buffer may be insufficient for:
+1. Complex node trees requiring multiple font loads
+2. Operations on large canvases with many children
+3. Network latency between the bridge server and Figma plugin
+
+#### Symptoms
+
+- HTTP 504 Gateway Timeout responses from `/execute` endpoint
+- Error message: `"No response from Figma within {timeout_ms}ms"`
+- Operations that succeed in Figma but fail to return results to the client
+
+#### Workaround
+
+Increase the `timeout_ms` parameter when calling the `/execute` endpoint:
+
+```bash
+# Instead of default 30000ms, use 60000ms for complex operations
+curl -X POST http://localhost:9223/execute \
+  -H "Content-Type: application/json" \
+  -d '{"code": "...", "timeout": 60000}'
+```
+
+Or use the retry mechanism (enabled by default):
+
+```bash
+# Retry is enabled by default, but can be explicitly set
+curl -X POST http://localhost:9223/execute \
+  -H "Content-Type: application/json" \
+  -d '{"code": "...", "timeout": 30000, "retry": true}'
+```
+
+#### Retry Behavior
+
+The `_send_to_plugin_with_retry()` method provides automatic retry with exponential backoff:
+- **Attempt 1:** Immediate
+- **Attempt 2:** After 1.5 seconds
+- **Attempt 3:** After 3.0 seconds (cumulative: 4.5s)
+- **Max attempts:** 3 (configurable via `MAX_RETRIES`)
+
+#### Fix Planned
+
+A future update will:
+1. Make the timeout buffer configurable via CLI flag
+2. Implement adaptive timeout based on operation complexity
+3. Add early heartbeat responses for long-running operations
+
+---
+
+### 7.2 Issue Reporting Template
+
+When reporting new issues, please include:
+
+```markdown
+**Issue ID:** [COMPONENT-XXX]
+**Severity:** Critical / High / Medium / Low
+**Component:** [bridge_server | figma_writer | paper_reader | etc.]
+**Mode Affected:** [script | bridge | http | all]
+
+**Description:**
+[Clear description of the bug]
+
+**Steps to Reproduce:**
+1. [Step 1]
+2. [Step 2]
+3. [Expected vs actual behavior]
+
+**Environment:**
+- Python version: [e.g., 3.11.5]
+- Figma Desktop version: [e.g., 124.1.6]
+- Desktop Bridge plugin version: [e.g., 1.2.0]
+- OS: [e.g., macOS 14.3]
+
+**Workaround:**
+[If any exists]
+```
 
 ---
 
