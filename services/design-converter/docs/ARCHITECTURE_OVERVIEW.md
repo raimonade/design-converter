@@ -361,7 +361,235 @@ conv = DesignConverter(
 
 ## 5. Workflow Examples
 
-(Placeholder - to be populated in subsequent subtasks)
+This section provides copy/paste-ready examples for common conversion workflows.
+Each example shows both CLI and Python API approaches.
+
+### 5.1 Paper → Figma (Script Mode)
+
+The simplest workflow — generate a JavaScript file and paste it into Figma.
+
+#### CLI
+
+```bash
+# Convert Paper component to Figma script
+python3 services/design-converter/converter.py paper:TO-0 figma:
+
+# With custom output location
+python3 services/design-converter/converter.py paper:TO-0 figma: \
+    --output-dir=./figma-scripts
+
+# Dry run to inspect the UNNode tree first
+python3 services/design-converter/converter.py paper:TO-0 figma: --dry-run
+```
+
+#### Python
+
+```python
+from converter import DesignConverter
+
+# Create converter in script mode (default)
+converter = DesignConverter(
+    figma_writer_mode="script",
+    figma_output_dir="./figma-scripts",
+)
+
+# Perform conversion
+result = converter.convert("paper:TO-0", "figma:")
+
+if result.success:
+    print(f"Script saved to: {result.output}")
+    # → "./figma-scripts/TO-0.js"
+else:
+    print(f"Conversion failed: {result.error}")
+```
+
+### 5.2 Paper → Figma (Bridge Mode)
+
+Automated workflow with direct Python → Figma connection via WebSocket.
+
+#### CLI
+
+```bash
+# Ensure Desktop Bridge plugin is running in Figma first
+python3 services/design-converter/converter.py paper:TO-0 figma: \
+    --figma-writer-mode=bridge \
+    --bridge-port=9224
+
+# With extended timeouts for large designs
+python3 services/design-converter/converter.py paper:TO-0 figma: \
+    --figma-writer-mode=bridge \
+    --connect-timeout=120 \
+    --bridge-timeout=60
+```
+
+#### Python
+
+```python
+from converter import DesignConverter
+
+# Create converter in bridge mode
+converter = DesignConverter(
+    figma_writer_mode="bridge",
+    figma_bridge_port=9224,
+    figma_connect_timeout=60.0,
+    figma_bridge_timeout=30.0,
+)
+
+# Use context manager for automatic cleanup
+with converter:
+    result = converter.convert("paper:TO-0", "figma:")
+
+    if result.success:
+        print(f"Created Figma node: {result.output}")
+        # → "12:45" (Figma node ID)
+    else:
+        print(f"Failed: {result.error}")
+```
+
+### 5.3 Paper → Figma (HTTP Mode)
+
+HTTP-based workflow for MCP tools and multi-client scenarios.
+
+#### CLI
+
+```bash
+# Start bridge server (terminal 1)
+python3 services/design-converter/adapters/figma/bridge_server.py --port 9223
+
+# Run conversion (terminal 2)
+python3 services/design-converter/converter.py paper:TO-0 figma: \
+    --figma-writer-mode=http \
+    --http-bridge-port=9223
+```
+
+#### Python
+
+```python
+from converter import DesignConverter
+
+# Create converter in HTTP mode
+converter = DesignConverter(
+    figma_writer_mode="http",
+    figma_http_bridge_port=9223,
+)
+
+# No context manager needed — HTTP is stateless
+result = converter.convert("paper:TO-0", "figma:")
+
+if result.success:
+    print(f"Created node ID: {result.output}")
+```
+
+### 5.4 Figma → Paper
+
+Read from Figma via REST API and write to Paper via MCP.
+
+#### CLI
+
+```bash
+# Convert Figma node to Paper component
+python3 services/design-converter/converter.py figma:abc123:45:67 paper:
+
+# With verbose output
+python3 services/design-converter/converter.py figma:abc123:45:67 paper: --verbose
+```
+
+#### Python
+
+```python
+from converter import DesignConverter
+from adapters.figma import FigmaReader
+from adapters.paper import PaperWriter
+
+# Option 1: High-level converter API
+converter = DesignConverter()
+result = converter.convert("figma:abc123:45:67", "paper:")
+
+# Option 2: Low-level reader/writer API
+reader = FigmaReader(access_token="your-figma-token")
+writer = PaperWriter(mcp_port=29979)
+
+# Read UNNode tree from Figma
+tree = reader.read_node(file_key="abc123", node_id="45:67")
+
+# Write to Paper
+writer.write_node(tree, output_path="NewComponent")
+```
+
+### 5.5 Batch Conversion
+
+Convert multiple components in a single run.
+
+#### CLI
+
+```bash
+# Convert all components in a Paper file
+python3 services/design-converter/converter.py paper:DesignFile:* figma: \
+    --figma-writer-mode=script \
+    --output-dir=./batch-output
+
+# Use a spec file for batch operations
+python3 services/design-converter/converter.py --spec-file=./conversions.json
+```
+
+#### Python
+
+```python
+from converter import DesignConverter, ConvertSpec
+
+# Define batch conversions
+specs = [
+    ConvertSpec(source="paper:TO-0", target="figma:"),
+    ConvertSpec(source="paper:TO-1", target="figma:"),
+    ConvertSpec(source="paper:TO-2", target="figma:"),
+]
+
+converter = DesignConverter(figma_writer_mode="script")
+
+results = []
+for spec in specs:
+    result = converter.convert(spec.source, spec.target)
+    results.append(result)
+    print(f"{spec.source} → {result.success}")
+
+# Summary
+successful = sum(1 for r in results if r.success)
+print(f"Converted {successful}/{len(results)} components")
+```
+
+### 5.6 Custom UNNode Pipeline
+
+Build custom pipelines by manipulating the UNNode tree directly.
+
+#### Python
+
+```python
+from ir.nodes import UNNode, NodeType, UNColor, UNSolidFill, UNPadding
+from adapters.figma import FigmaWriter
+from adapters.paper import PaperReader
+
+# Read from Paper
+reader = PaperReader(mcp_port=29979)
+tree = reader.read_node(file_key="DesignFile", node_id="Button")
+
+# Modify the UNNode tree programmatically
+for node in tree.children:
+    if node.type == NodeType.FRAME:
+        # Add padding
+        node.padding = UNPadding(top=16, right=24, bottom=16, left=24)
+
+        # Change fill color
+        if node.fills:
+            node.fills[0] = UNSolidFill(
+                color=UNColor(r=0.2, g=0.4, b=0.8, a=1.0)
+            )
+
+# Write modified tree to Figma
+writer = FigmaWriter(mode="bridge", bridge_port=9224)
+with writer:
+    node_id = writer.write_node(tree)
+    print(f"Created: {node_id}")
+```
 
 ---
 
