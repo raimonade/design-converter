@@ -595,7 +595,94 @@ with writer:
 
 ## 6. Status Matrix
 
-(Placeholder - to be populated in subsequent subtasks)
+This section provides a comprehensive view of component implementation status, feature coverage, and known limitations across the design-converter ecosystem.
+
+### 6.1 Component Status
+
+| Component | Location | Status | Lines | Purpose |
+|-----------|----------|:------:|------:|---------|
+| **UNNode IR** | `ir/nodes.py` | ✅ Working | 1,294 | Universal node representation with full type safety |
+| **Base Adapter** | `adapters/base.py` | ✅ Working | 259 | Interface contracts for readers/writers |
+| **Figma Reader** | `adapters/figma/reader.py` | ✅ Working | ~400 | Figma REST API → UNNode |
+| **Figma Writer** | `adapters/figma/writer.py` | ✅ Working | 1,101 | UNNode → Figma Plugin API JavaScript |
+| **Paper Reader** | `adapters/paper/reader.py` | ✅ Working | ~300 | Paper MCP → UNNode |
+| **Paper Writer** | `adapters/paper/writer.py` | ✅ Working | ~300 | UNNode → Paper MCP |
+| **Pencil Reader** | `adapters/pencil/reader.py` | ⚠️ Partial | ~200 | Pencil MCP → UNNode (basic shapes only) |
+| **Pencil Writer** | `adapters/pencil/writer.py` | ⚠️ Partial | ~200 | UNNode → Pencil MCP (no text styling) |
+| **DTCG Tokens** | `utils/tokens.py` | ✅ Working | ~200 | W3C Design Tokens export |
+| **Bridge Server** | `adapters/figma/bridge_server.py` | ✅ Working | ~350 | HTTP → WebSocket proxy for Figma |
+| **HTTP Bridge Client** | `adapters/figma/http_bridge.py` | ✅ Working | ~150 | HTTP client for bridge server |
+
+**Status Legend:**
+- ✅ **Working** — Fully implemented, tested, production-ready
+- ⚠️ **Partial** — Core functionality works, some features missing
+- ❌ **Broken** — Major issues, needs significant work
+- ⏳ **Planned** — Not yet implemented
+
+### 6.2 Feature Support by Adapter
+
+| Feature | Figma Reader | Figma Writer | Paper Reader | Paper Writer | Pencil Reader | Pencil Writer |
+|---------|:------------:|:------------:|:------------:|:------------:|:-------------:|:-------------:|
+| **Frames/Rectangles** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Text with styling** | ✅ | ✅ | ✅ | ✅ | ⚠️ | ⚠️ |
+| **Rich text runs** | ✅ | ✅ | ⚠️ | ⚠️ | ❌ | ❌ |
+| **Auto-layout** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| **Fills (solid)** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Fills (gradient)** | ✅ | ⚠️ | ⚠️ | ⚠️ | ❌ | ❌ |
+| **Fills (image)** | ⚠️ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Strokes** | ✅ | ⚠️ | ✅ | ✅ | ⚠️ | ⚠️ |
+| **Effects (shadows)** | ✅ | ✅ | ⚠️ | ⚠️ | ❌ | ❌ |
+| **Effects (blur)** | ✅ | ⚠️ | ❌ | ❌ | ❌ | ❌ |
+| **Component instances** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Variable bindings** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Mask nodes** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Export settings** | ❌ | N/A | N/A | N/A | N/A | N/A |
+
+### 6.3 Platform Read/Write Matrix
+
+| Platform | Read | Write | Protocol | Port | Automation |
+|----------|:----:|:-----:|----------|------|------------|
+| **Figma (REST)** | ✅ | ❌ | HTTPS REST API | 443 | API token |
+| **Figma (Plugin)** | ❌ | ✅ | WebSocket / HTTP | 9223-9224 | Desktop Bridge |
+| **Paper** | ✅ | ✅ | HTTP SSE (MCP) | 29979 | MCP session |
+| **Pencil** | ✅ | ✅ | MCP stdio / HTTP | 19000-19009 | MCP client |
+
+### 6.4 Known Gaps Summary
+
+| Gap ID | Severity | Component | Description | Status |
+|--------|:--------:|-----------|-------------|:------:|
+| **G1** | 🔴 Critical | Figma Reader | Deep component instance overrides not fully captured | Open |
+| **G2** | 🔴 Critical | All adapters | `isMask` property not preserved | Open |
+| **G3** | 🟡 Important | Figma Writer | Only first fill applied to TEXT nodes | Open |
+| **G4** | 🟡 Important | Figma Writer | Missing stroke dash pattern, line cap, line join | Open |
+| **G5** | 🟡 Important | Figma Writer | Per-fill blend modes not supported | Open |
+| **G6** | 🟢 Minor | Figma Reader | Export settings not captured | Open |
+| **G7** | 🟡 Important | All adapters | Image fills require base64 encoding | Open |
+| **G8** | 🟡 Important | Pencil adapters | Text styling limited to basic properties | Open |
+
+**Severity Legend:**
+- 🔴 **Critical** — Blocks major use cases, data loss
+- 🟡 **Important** — Feature incomplete, workaround exists
+- 🟢 **Minor** — Nice-to-have, low impact
+
+### 6.5 Connection Mode Status
+
+| Mode | Status | Dependencies | Tested Platforms |
+|------|:------:|--------------|------------------|
+| **script** | ✅ Working | None | macOS, Linux, Windows |
+| **bridge** | ✅ Working | Desktop Bridge plugin | macOS |
+| **http** | ✅ Working | bridge_server.py + plugin | macOS |
+
+### 6.6 Testing Coverage
+
+| Component | Unit Tests | Integration Tests | Manual Tests |
+|-----------|:----------:|:-----------------:|:------------:|
+| UNNode IR | ✅ | ✅ | ✅ |
+| Figma Reader | ✅ | ⚠️ | ✅ |
+| Figma Writer | ✅ | ✅ | ✅ |
+| Paper Adapter | ⚠️ | ⚠️ | ✅ |
+| Pencil Adapter | ⚠️ | ❌ | ✅ |
+| Bridge Server | ✅ | ✅ | ✅ |
 
 ---
 
