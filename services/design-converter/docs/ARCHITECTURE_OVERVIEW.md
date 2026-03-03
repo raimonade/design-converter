@@ -787,7 +787,509 @@ When reporting new issues, please include:
 
 ## 8. UNNode IR Reference
 
-(Placeholder - to be populated in subsequent subtasks)
+The Universal Node Tree (UNT) is the intermediate representation (IR) that sits at the core of the design-converter architecture. Every design tool (Figma, Paper, Pencil) maps to and from this unified tree structure.
+
+### 8.1 Philosophy
+
+The IR follows these principles:
+
+- **Everything is a node** — Modeled after Figma's SceneNode hierarchy
+- **Fills/strokes/effects are first-class lists** — Ordered bottom-to-top, like Figma
+- **Layout is flex-inspired** — Matches auto-layout semantics across all three tools
+- **Variables/tokens tracked as bindings** — Preserves round-trip fidelity
+- **No tool-specific concepts** — The IR is tool-agnostic
+
+### 8.2 Core Node Structure
+
+The `UNNode` dataclass is the primary building block:
+
+```python
+from ir.nodes import UNNode, NodeType, UNColor, UNSize
+
+# Create a simple frame
+frame = UNNode(
+    type=NodeType.FRAME,
+    name="Button",
+    width=UNSize.fixed(120),
+    height=UNSize.fixed(40),
+)
+```
+
+#### UNNode Field Reference
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| **Identity** ||||
+| `type` | `NodeType` | `FRAME` | Node type (frame, text, rectangle, etc.) |
+| `id` | `str` | `""` | Unique identifier |
+| `name` | `str` | `"Node"` | Human-readable name |
+| **Position** ||||
+| `x` | `float` | `0.0` | X position (ignored in flex parents) |
+| `y` | `float` | `0.0` | Y position (ignored in flex parents) |
+| **Size** ||||
+| `width` | `UNSize` | `fixed(100)` | Width with sizing mode |
+| `height` | `UNSize` | `fixed(100)` | Height with sizing mode |
+| **Visual** ||||
+| `fills` | `List[UNFill]` | `[]` | Ordered fill layers |
+| `strokes` | `List[UNStroke]` | `[]` | Stroke definitions |
+| `effects` | `List[UNEffect]` | `[]` | Shadows, blurs, etc. |
+| `opacity` | `float` | `1.0` | Node opacity (0.0–1.0) |
+| `visible` | `bool` | `True` | Layer visibility |
+| `blend_mode` | `BlendMode` | `NORMAL` | Blend mode |
+| `clip_content` | `bool` | `False` | Clip children to bounds |
+| `rotation` | `float` | `0.0` | Rotation in degrees (CCW) |
+| **Shape** ||||
+| `corner_radius` | `UNCornerRadius` | `0` | Per-corner radius |
+| **Layout (Flex)** ||||
+| `layout` | `LayoutMode` | `NONE` | Flex direction |
+| `gap` | `float` | `0.0` | Spacing between children |
+| `padding` | `UNPadding` | `0` | Internal padding |
+| `justify_content` | `JustifyContent` | `START` | Main axis alignment |
+| `align_items` | `AlignItems` | `START` | Cross axis alignment |
+| `layout_wrap` | `bool` | `False` | Enable flex wrapping |
+| **Text (TEXT nodes)** ||||
+| `text_content` | `str` | `""` | Text string content |
+| `text_style` | `UNTextStyle` | — | Font, size, color, etc. |
+| `text_runs` | `List[UNTextRun]` | `[]` | Rich text style overrides |
+| **Path (PATH nodes)** ||||
+| `geometry` | `str` | `""` | SVG path `d=` string |
+| `fill_rule` | `str` | `"nonzero"` | Fill rule (nonzero/evenodd) |
+| **Ellipse** ||||
+| `inner_radius` | `float` | `0.0` | Inner radius (0=solid, 1=ring) |
+| `start_angle` | `float` | `0.0` | Start angle in degrees |
+| `sweep_angle` | `float` | `360.0` | Arc sweep in degrees |
+| **Image** ||||
+| `image_url` | `str` | `""` | Image URL or path |
+| `image_mode` | `ImageFillMode` | `FILL` | Image scaling mode |
+| **Component** ||||
+| `component_id` | `str` | `""` | Referenced component ID |
+| `component_props` | `Dict` | `{}` | Component property values |
+| **Metadata** ||||
+| `variable_bindings` | `Dict` | `{}` | Design token bindings |
+| `locked` | `bool` | `False` | Layer locked in editor |
+| `children` | `List[UNNode]` | `[]` | Child nodes |
+| `source_tool` | `str` | `""` | Origin tool (paper/pencil/figma) |
+| `source_id` | `str` | `""` | Original ID from source |
+| `metadata` | `Dict` | `{}` | Tool-specific metadata |
+
+### 8.3 Enum Reference
+
+#### NodeType
+
+| Value | Description |
+|-------|-------------|
+| `FRAME` | Container with optional flex layout |
+| `TEXT` | Text node with styled content |
+| `RECTANGLE` | Solid rectangle shape |
+| `ELLIPSE` | Ellipse or circle |
+| `PATH` | Vector path (SVG geometry) |
+| `LINE` | Straight line |
+| `GROUP` | Non-layout grouping container |
+| `IMAGE` | Raster image node |
+| `COMPONENT` | Figma component definition |
+| `INSTANCE` | Figma component instance |
+
+#### LayoutMode
+
+| Value | Description | CSS Equivalent |
+|-------|-------------|----------------|
+| `NONE` | Absolute positioning | `position: absolute` |
+| `HORIZONTAL` | Horizontal flexbox | `flex-direction: row` |
+| `VERTICAL` | Vertical flexbox | `flex-direction: column` |
+
+#### JustifyContent
+
+| Value | Description | CSS Equivalent |
+|-------|-------------|----------------|
+| `START` | Pack to start | `flex-start` |
+| `CENTER` | Center items | `center` |
+| `END` | Pack to end | `flex-end` |
+| `SPACE_BETWEEN` | Equal spacing between | `space-between` |
+| `SPACE_AROUND` | Equal spacing around | `space-around` |
+
+#### AlignItems
+
+| Value | Description | CSS Equivalent |
+|-------|-------------|----------------|
+| `START` | Align to start | `flex-start` |
+| `CENTER` | Center items | `center` |
+| `END` | Align to end | `flex-end` |
+| `STRETCH` | Stretch to fill | `stretch` |
+
+#### SizingMode
+
+| Value | Description | CSS Equivalent |
+|-------|-------------|----------------|
+| `FIXED` | Absolute pixel value | `100px` |
+| `HUG` | Fit to content | `fit-content` |
+| `FILL` | Fill parent container | `100%` / `flex: 1` |
+
+#### TextAlign
+
+| Value | Description |
+|-------|-------------|
+| `LEFT` | Left-aligned text |
+| `CENTER` | Centered text |
+| `RIGHT` | Right-aligned text |
+| `JUSTIFY` | Justified text |
+
+#### TextTransform
+
+| Value | Description |
+|-------|-------------|
+| `NONE` | No transformation |
+| `UPPERCASE` | Convert to uppercase |
+| `LOWERCASE` | Convert to lowercase |
+| `CAPITALIZE` | Capitalize each word |
+
+#### TextAutoResize
+
+| Value | Description |
+|-------|-------------|
+| `NONE` | Fixed width and height |
+| `WIDTH_HEIGHT` | Hug both axes (auto-sizing) |
+| `HEIGHT` | Fixed width, grow height |
+
+#### GradientType
+
+| Value | Description |
+|-------|-------------|
+| `LINEAR` | Linear gradient |
+| `RADIAL` | Radial gradient |
+| `ANGULAR` | Angular/conic gradient |
+| `DIAMOND` | Diamond gradient |
+
+#### StrokeAlign
+
+| Value | Description |
+|-------|-------------|
+| `INSIDE` | Stroke inside the bounds |
+| `CENTER` | Stroke centered on edge |
+| `OUTSIDE` | Stroke outside the bounds |
+
+#### BlendMode
+
+| Value | Description |
+|-------|-------------|
+| `NORMAL` | Standard blending |
+| `MULTIPLY` | Multiply blend |
+| `SCREEN` | Screen blend |
+| `OVERLAY` | Overlay blend |
+| `DARKEN` | Darken mode |
+| `LIGHTEN` | Lighten mode |
+| `COLOR_DODGE` | Color dodge |
+| `COLOR_BURN` | Color burn |
+| `HARD_LIGHT` | Hard light |
+| `SOFT_LIGHT` | Soft light |
+| `DIFFERENCE` | Difference |
+| `EXCLUSION` | Exclusion |
+| `HUE` | Hue blend |
+| `SATURATION` | Saturation blend |
+| `COLOR` | Color blend |
+| `LUMINOSITY` | Luminosity blend |
+
+#### ImageFillMode
+
+| Value | Description |
+|-------|-------------|
+| `FILL` | Fill bounds (may crop) |
+| `FIT` | Fit within bounds |
+| `STRETCH` | Stretch to bounds |
+| `TILE` | Tile/repeat pattern |
+| `CROP` | Crop to bounds |
+
+### 8.4 Helper Dataclasses
+
+#### UNColor
+
+Normalized RGBA color with 0.0–1.0 float channels.
+
+```python
+from ir.nodes import UNColor
+
+# From hex
+color = UNColor.from_hex("#FF5733")
+color = UNColor.from_hex("#FF573380")  # With alpha
+
+# Direct construction
+color = UNColor(r=1.0, g=0.34, b=0.2, a=1.0)
+
+# Conversion methods
+color.to_hex()           # → "#FF5733"
+color.to_css_rgba()      # → "rgba(255,87,51,1)"
+color.to_figma_rgb()     # → {"r": 1.0, "g": 0.34, "b": 0.2}
+```
+
+#### UNSize
+
+Width/height with sizing mode (fixed, hug, fill).
+
+```python
+from ir.nodes import UNSize, SizingMode
+
+# Factory methods
+size = UNSize.fixed(200)    # Fixed 200px
+size = UNSize.hug()         # Fit content
+size = UNSize.fill()        # Fill parent
+
+# Conversion
+size.to_css()       # → "200px" / "fit-content" / "100%"
+size.to_figma()     # → {"primaryAxisSizingMode": "AUTO"} etc.
+size.to_pencil()    # → 200 / "fit_content" / "fill_container"
+```
+
+#### UNPadding
+
+Per-side padding values.
+
+```python
+from ir.nodes import UNPadding
+
+# Factory methods
+padding = UNPadding.all(16)              # All sides 16px
+padding = UNPadding.xy(24, 16)           # H: 24px, V: 16px
+padding = UNPadding.sides(top=8, left=12)  # Individual sides
+
+# Conversion
+padding.to_css()      # → "16px" / "16px 24px" / "8px 12px 8px 12px"
+padding.is_zero()     # → True if all sides are 0
+```
+
+#### UNCornerRadius
+
+Per-corner radius values.
+
+```python
+from ir.nodes import UNCornerRadius
+
+# Factory methods
+radius = UNCornerRadius.all(8)           # All corners 8px
+radius = UNCornerRadius.sides(tl=4, br=12)  # Individual corners
+
+# Methods
+radius.is_uniform()   # → True if all corners equal
+radius.value()        # → Returns uniform value (raises if not uniform)
+radius.to_css()       # → "8px" / "4px 4px 12px 12px"
+```
+
+### 8.5 Fill Types
+
+All fills share common fields: `opacity`, `blend_mode`, `enabled`.
+
+#### UNSolidFill
+
+```python
+from ir.nodes import UNSolidFill, UNColor
+
+fill = UNSolidFill(
+    color=UNColor.from_hex("#3B82F6"),
+    opacity=0.9,
+    blend_mode=BlendMode.NORMAL,
+    enabled=True,
+)
+```
+
+#### UNGradientFill
+
+```python
+from ir.nodes import UNGradientFill, UNGradientStop, UNColor, GradientType
+
+fill = UNGradientFill(
+    gradient_type=GradientType.LINEAR,
+    rotation=180.0,  # CSS degrees (180 = top-to-bottom)
+    stops=[
+        UNGradientStop(color=UNColor.from_hex("#3B82F6"), position=0.0),
+        UNGradientStop(color=UNColor.from_hex("#1D4ED8"), position=1.0),
+    ],
+    opacity=1.0,
+)
+```
+
+#### UNImageFill
+
+```python
+from ir.nodes import UNImageFill, ImageFillMode
+
+fill = UNImageFill(
+    url="https://example.com/image.png",
+    mode=ImageFillMode.COVER,
+    opacity=1.0,
+)
+```
+
+### 8.6 Stroke
+
+```python
+from ir.nodes import UNStroke, UNSolidFill, UNStrokeThickness, StrokeAlign
+
+stroke = UNStroke(
+    fill=UNSolidFill(color=UNColor.from_hex("#000000")),
+    thickness=UNStrokeThickness.uniform(2.0),
+    align=StrokeAlign.INSIDE,
+    cap="round",      # "none" | "round" | "square"
+    join="miter",     # "miter" | "bevel" | "round"
+    dash_pattern=[],  # [dash, gap, ...]
+)
+```
+
+### 8.7 Effects
+
+#### UNDropShadow
+
+```python
+from ir.nodes import UNDropShadow, UNColor, BlendMode
+
+shadow = UNDropShadow(
+    color=UNColor.from_hex("#00000040"),  # Black with 25% opacity
+    offset_x=0.0,
+    offset_y=4.0,
+    blur=8.0,
+    spread=0.0,
+    inner=False,  # True for inset shadow
+    blend_mode=BlendMode.NORMAL,
+)
+```
+
+#### UNBlur
+
+```python
+from ir.nodes import UNBlur
+
+blur = UNBlur(
+    radius=10.0,
+    background=False,  # True for backdrop blur
+)
+```
+
+### 8.8 Text Styling
+
+#### UNTextStyle
+
+```python
+from ir.nodes import UNTextStyle, TextAlign, TextTransform, TextAutoResize
+
+style = UNTextStyle(
+    font_family="Inter",
+    font_size=16.0,
+    font_weight="600",       # CSS weight string
+    font_style="normal",     # "normal" | "italic"
+    line_height=24.0,        # px; None = auto
+    letter_spacing=0.5,      # px
+    text_align=TextAlign.CENTER,
+    text_transform=TextTransform.NONE,
+    text_auto_resize=TextAutoResize.HEIGHT,
+    text_decoration="none",  # "none" | "underline" | "line-through"
+)
+
+# Convert to Figma font name
+style.figma_font_name()  # → {"family": "Inter", "style": "SemiBold"}
+```
+
+#### UNTextRun (Rich Text)
+
+```python
+from ir.nodes import UNTextRun, UNColor, TextTransform
+
+run = UNTextRun(
+    content="bold text",
+    start=0,
+    end=9,
+    fill=UNColor.from_hex("#FF0000"),  # Override color
+    font_weight="700",                  # Override weight
+    italic=True,
+)
+```
+
+### 8.9 Factory Functions
+
+Convenience constructors for common node types:
+
+```python
+from ir.nodes import (
+    make_frame, make_text, make_rect, make_ellipse, make_path,
+    make_gradient_fill, make_solid_fill, make_shadow,
+    LayoutMode, UNPadding, TextAlign, TextTransform,
+)
+
+# Frame with auto-layout
+frame = make_frame(
+    "Button",
+    width=120, height=40,
+    fill_color="#3B82F6",
+    layout=LayoutMode.HORIZONTAL,
+    gap=8,
+    padding=UNPadding.xy(16, 8),
+    corner_radius=8,
+)
+
+# Text node
+text = make_text(
+    "Label",
+    "Click me",
+    font_size=14,
+    font_weight="500",
+    color="#FFFFFF",
+)
+
+# Rectangle
+rect = make_rect(
+    "Box",
+    x=0, y=0,
+    width=100, height=100,
+    fill_color="#FF0000",
+    corner_radius=4,
+)
+
+# Ellipse
+ellipse = make_ellipse(
+    "Circle",
+    x=50, y=50,
+    width=80, height=80,
+    fill_color="#00FF00",
+)
+
+# Path (SVG geometry)
+path = make_path(
+    "Checkmark",
+    width=24, height=24,
+    geometry="M4 12l5 5L20 6",
+    stroke_color="#000000",
+    stroke_width=2,
+)
+
+# Helpers
+fill = make_solid_fill("#3B82F6", opacity=0.9)
+gradient = make_gradient_fill(gradient_type=GradientType.LINEAR, rotation=90)
+shadow = make_shadow("#00000040", offset_y=4, blur=8)
+```
+
+### 8.10 UNNode Methods
+
+```python
+# Tree traversal
+for node in root.walk():
+    print(node.name)
+
+# Find nodes
+result = root.find_by_name("Button")
+all_texts = root.find_all(lambda n: n.type == NodeType.TEXT)
+
+# Add children/visuals
+root.add_child(child_node)
+root.add_fill(fill)
+root.add_stroke(stroke)
+root.add_effect(shadow)
+
+# Get primary fill color
+color = node.primary_fill_color()
+
+# Check container type
+if node.is_container():
+    print("Has children:", len(node.children))
+
+# Serialize for debugging
+print(node.to_dict())
+```
 
 ---
 
