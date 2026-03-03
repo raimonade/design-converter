@@ -475,17 +475,20 @@ class FigmaBridgeServer:
             "params": {"code": code, "timeout": timeout_ms},
         })
 
-        frame = make_ws_frame(payload.encode("utf-8"))
-        self.ws_writer.write(frame)
-        await self.ws_writer.drain()
-
-        # Create pending request
+        # Register pending request BEFORE sending to avoid race condition.
+        # If the plugin responds quickly, _ws_receive_loop must find the request
+        # already registered, otherwise the response is silently dropped.
         loop = asyncio.get_event_loop()
         future = loop.create_future()
         self.pending_requests[request_id] = PendingRequest(
             request_id=request_id,
             future=future,
         )
+
+        # Now send the frame
+        frame = make_ws_frame(payload.encode("utf-8"))
+        self.ws_writer.write(frame)
+        await self.ws_writer.drain()
 
         # Wait for response
         try:
