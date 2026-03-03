@@ -692,7 +692,7 @@ This section documents known bugs, limitations, and workarounds in the design-co
 
 ### 7.1 HTTP Bridge Timeout Bug (BRIDGE-001)
 
-**Status:** 🔴 Open · **Severity:** High · **Affected Mode:** HTTP (bridge_server.py)
+**Status:** 🟢 Fixed · **Severity:** High · **Affected Mode:** HTTP (bridge_server.py) · **Fixed In:** 2026-03-03
 
 #### Description
 
@@ -796,17 +796,26 @@ Analysis of `_ws_receive_loop()` (lines 381-431) and `_handle_ws_message()` (lin
 
 **Conclusion:** The receive path is not the issue. The root cause is isolated to `_send_to_plugin()` registering the pending request **after** sending the frame.
 
-#### Fix Required
+#### Fix Applied ✅
 
-Swap the order of operations: **register the pending request BEFORE sending the frame**:
+The fix has been implemented in `bridge_server.py` (lines 467-499). The order of operations was swapped to **register the pending request BEFORE sending the frame**:
 
 ```python
-# ✅ FIXED ORDER - Register BEFORE sending
+# ✅ FIXED ORDER - Current code in bridge_server.py lines 467-499
 async def _send_to_plugin(self, request_id: str, code: str, timeout_ms: int) -> Dict:
+    """Send code to the plugin and wait for response."""
     if not self.ws_connected.is_set():
         raise RuntimeError("Desktop Bridge plugin not connected")
 
-    # STEP 1: Register pending request FIRST (moved up from line 483)
+    payload = json.dumps({
+        "id": request_id,
+        "method": "EXECUTE_CODE",
+        "params": {"code": code, "timeout": timeout_ms},
+    })
+
+    # Register pending request BEFORE sending to avoid race condition.
+    # If the plugin responds quickly, _ws_receive_loop must find the request
+    # already registered, otherwise the response is silently dropped.
     loop = asyncio.get_event_loop()
     future = loop.create_future()
     self.pending_requests[request_id] = PendingRequest(
@@ -814,17 +823,12 @@ async def _send_to_plugin(self, request_id: str, code: str, timeout_ms: int) -> 
         future=future,
     )
 
-    # STEP 2: Build and send frame SECOND
-    payload = json.dumps({
-        "id": request_id,
-        "method": "EXECUTE_CODE",
-        "params": {"code": code, "timeout": timeout_ms},
-    })
+    # Now send the frame
     frame = make_ws_frame(payload.encode("utf-8"))
     self.ws_writer.write(frame)
     await self.ws_writer.drain()
 
-    # STEP 3: Wait for response (already registered, no race)
+    # Wait for response (already registered, no race)
     try:
         result = await asyncio.wait_for(future, timeout=timeout_ms / 1000 + 5)
         return result
@@ -833,9 +837,11 @@ async def _send_to_plugin(self, request_id: str, code: str, timeout_ms: int) -> 
         raise TimeoutError(f"No response from Figma within {timeout_ms}ms")
 ```
 
-#### Workaround (Until Fix is Applied)
+**Verification:** All 32 bridge server unit tests pass with the fix applied.
 
-The retry mechanism (enabled by default) masks the bug by retrying:
+#### Historical Workaround (No Longer Needed)
+
+Before the fix was applied, the retry mechanism (enabled by default) masked the bug by retrying:
 
 ```bash
 # Retry is enabled by default
