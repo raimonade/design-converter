@@ -696,62 +696,148 @@ This section documents known bugs, limitations, and workarounds in the design-co
 
 #### Description
 
-The HTTP bridge server (`bridge_server.py`) may fail to return responses within the expected timeout window when executing long-running Figma operations. This manifests as `Gateway Timeout (504)` errors even when the Figma plugin successfully completes the operation.
+`POST /execute` times out with `Gateway Timeout (504)` even when `GET /health` shows `plugin_connected: true`. The Figma plugin successfully completes the operation, but the response never reaches the HTTP client.
 
-#### Root Cause
+#### Root Cause: Race Condition (TOCTOU)
 
-The `_send_to_plugin()` method in `bridge_server.py` adds a fixed 5-second buffer to the client-requested timeout:
+The `_send_to_plugin()` method (lines 467-496) has a **classic Time-Of-Check-Time-Of-Use race condition**:
 
 ```python
-# Line 492 in bridge_server.py
-result = await asyncio.wait_for(future, timeout=timeout_ms / 1000 + 5)
+# ❌ BUGGY ORDER - Current code in bridge_server.py lines 467-496
+async def _send_to_plugin(self, request_id: str, code: str, timeout_ms: int) -> Dict:
+    # ... build payload ...
+
+    # STEP 1: Send frame to plugin (line 478-480)
+    frame = make_ws_frame(payload.encode("utf-8"))
+    self.ws_writer.write(frame)
+    await self.ws_writer.drain()  # ← Frame is NOW on the network!
+
+    # STEP 2: Register pending request (line 483-488) ← TOO LATE!
+    loop = asyncio.get_event_loop()
+    future = loop.create_future()
+    self.pending_requests[request_id] = PendingRequest(
+        request_id=request_id,
+        future=future,
+    )
+
+    # STEP 3: Wait for response that may have already arrived and been dropped
+    try:
+        result = await asyncio.wait_for(future, timeout=timeout_ms / 1000 + 5)
+        return result
+    except asyncio.TimeoutError:
+        self.pending_requests.pop(request_id, None)
+        raise TimeoutError(f"No response from Figma within {timeout_ms}ms")
 ```
 
-This buffer may be insufficient for:
-1. Complex node trees requiring multiple font loads
-2. Operations on large canvases with many children
-3. Network latency between the bridge server and Figma plugin
+**The race condition:**
+1. After `await self.ws_writer.drain()` (line 480), the frame is on the network
+2. The plugin receives it, executes code, and sends a response **BEFORE** line 485 runs
+3. `_ws_receive_loop()` → `_handle_ws_message()` receives the response (line 404)
+4. `_handle_ws_message()` looks for `request_id` in `pending_requests` (line 456)
+5. **But it's not registered yet!** (lines 483-488 haven't executed)
+6. Response is silently dropped (line 462: "without matching request")
+7. Future is registered, then waits forever → **TIMEOUT**
 
-#### Symptoms
+#### Async Flow Diagram
 
-- HTTP 504 Gateway Timeout responses from `/execute` endpoint
-- Error message: `"No response from Figma within {timeout_ms}ms"`
-- Operations that succeed in Figma but fail to return results to the client
-
-#### Workaround
-
-Increase the `timeout_ms` parameter when calling the `/execute` endpoint:
-
-```bash
-# Instead of default 30000ms, use 60000ms for complex operations
-curl -X POST http://localhost:9223/execute \
-  -H "Content-Type: application/json" \
-  -d '{"code": "...", "timeout": 60000}'
+```
+HTTP Thread                         WebSocket Receive Loop
+─────────────                       ──────────────────────
+_send_to_plugin()
+│
+├─ ws_writer.write(frame)
+├─ await ws_writer.drain() ──────────────────┐
+│                                            │
+│   ◄───── PLUGIN RECEIVES AND RESPONDS ────►│
+│                                            │
+│                     ◄─── _ws_receive_loop() receives response
+│                     │
+│                     ├─ _handle_ws_message()
+│                     │   │
+│                     │   ├─ request_id in pending_requests?
+│                     │   │   └─ NO! ❌ (not registered yet)
+│                     │   │
+│                     │   └─ log.debug("without matching request")
+│                     │       (response silently dropped!)
+│                     │
+├─ pending_requests[id] = future  ◄─── TOO LATE! Response already gone
+│
+├─ await asyncio.wait_for(future)  ◄─── Waits forever → TIMEOUT
+│
+└─ TimeoutError raised
 ```
 
-Or use the retry mechanism (enabled by default):
+#### Why `/health` Works but `/execute` Fails
+
+| Endpoint | What It Does | WebSocket Round-trip? | Result |
+|----------|--------------|----------------------|--------|
+| `GET /health` | Returns local state (`ws_connected`, `_plugin_info`) | ❌ No | ✅ Works |
+| `POST /execute` | Sends code, waits for response via `_send_to_plugin()` | ✅ Yes | ❌ Hits race condition |
+
+#### Why It's Intermittent
+
+The bug depends on relative timing:
+- **Slow plugin / fast Python**: Works (registration beats response)
+- **Fast plugin / slow Python**: Fails (response beats registration)
+- Network latency and event loop scheduling affect outcome
+
+#### Fix Required
+
+Swap the order of operations: **register the pending request BEFORE sending the frame**:
+
+```python
+# ✅ FIXED ORDER - Register BEFORE sending
+async def _send_to_plugin(self, request_id: str, code: str, timeout_ms: int) -> Dict:
+    if not self.ws_connected.is_set():
+        raise RuntimeError("Desktop Bridge plugin not connected")
+
+    # STEP 1: Register pending request FIRST (moved up from line 483)
+    loop = asyncio.get_event_loop()
+    future = loop.create_future()
+    self.pending_requests[request_id] = PendingRequest(
+        request_id=request_id,
+        future=future,
+    )
+
+    # STEP 2: Build and send frame SECOND
+    payload = json.dumps({
+        "id": request_id,
+        "method": "EXECUTE_CODE",
+        "params": {"code": code, "timeout": timeout_ms},
+    })
+    frame = make_ws_frame(payload.encode("utf-8"))
+    self.ws_writer.write(frame)
+    await self.ws_writer.drain()
+
+    # STEP 3: Wait for response (already registered, no race)
+    try:
+        result = await asyncio.wait_for(future, timeout=timeout_ms / 1000 + 5)
+        return result
+    except asyncio.TimeoutError:
+        self.pending_requests.pop(request_id, None)
+        raise TimeoutError(f"No response from Figma within {timeout_ms}ms")
+```
+
+#### Workaround (Until Fix is Applied)
+
+The retry mechanism (enabled by default) masks the bug by retrying:
 
 ```bash
-# Retry is enabled by default, but can be explicitly set
+# Retry is enabled by default
 curl -X POST http://localhost:9223/execute \
   -H "Content-Type: application/json" \
   -d '{"code": "...", "timeout": 30000, "retry": true}'
 ```
 
+Each retry generates a **new request_id**, so even if the first response is dropped, subsequent attempts may succeed if timing is more favorable.
+
 #### Retry Behavior
 
 The `_send_to_plugin_with_retry()` method provides automatic retry with exponential backoff:
 - **Attempt 1:** Immediate
-- **Attempt 2:** After 1.5 seconds
-- **Attempt 3:** After 3.0 seconds (cumulative: 4.5s)
+- **Attempt 2:** After 1.5 seconds (new request_id generated)
+- **Attempt 3:** After 3.0 seconds (cumulative: 4.5s, new request_id)
 - **Max attempts:** 3 (configurable via `MAX_RETRIES`)
-
-#### Fix Planned
-
-A future update will:
-1. Make the timeout buffer configurable via CLI flag
-2. Implement adaptive timeout based on operation complexity
-3. Add early heartbeat responses for long-running operations
 
 ---
 
