@@ -1295,7 +1295,142 @@ print(node.to_dict())
 
 ## 9. File Location Index
 
-(Placeholder - to be populated in subsequent subtasks)
+This section provides a quick-reference file map for master agent navigation. All paths are relative to `services/design-converter/`.
+
+### 9.1 Root Level
+
+| File | Lines | Purpose |
+|------|------:|---------|
+| `converter.py` | ~700 | Main orchestrator: `DesignConverter`, `ConvertSpec`, `ConvertResult`, CLI argparse |
+| `execute_design.py` | ~80 | Standalone execution helper for design operations |
+| `README.md` | — | Project documentation and quick-start guide |
+
+### 9.2 IR Layer (`ir/`)
+
+The Intermediate Representation — the universal design tree shared by all adapters.
+
+| File | Lines | Purpose |
+|------|------:|---------|
+| `ir/__init__.py` | ~120 | Public exports: `UNNode`, `NodeType`, factory functions |
+| `ir/nodes.py` | ~1,300 | Core dataclasses: `UNNode`, `UNColor`, `UNSize`, `UNPadding`, fills, strokes, effects, text styles |
+
+**Key Exports from `ir/__init__.py`:**
+```python
+from ir import (
+    # Core
+    UNNode, NodeType,
+    # Geometry
+    UNSize, UNPadding, UNCornerRadius,
+    # Color
+    UNColor,
+    # Fills
+    UNSolidFill, UNGradientFill, UNImageFill,
+    # Strokes & Effects
+    UNStroke, UNDropShadow, UNBlur,
+    # Text
+    UNTextStyle, UNTextRun,
+    # Enums
+    LayoutMode, JustifyContent, AlignItems, SizingMode,
+    BlendMode, GradientType, StrokeAlign, ImageFillMode,
+    # Factories
+    make_frame, make_text, make_rect, make_ellipse, make_path,
+)
+```
+
+### 9.3 Adapters Layer (`adapters/`)
+
+All adapters implement `BaseReader` / `BaseWriter` contracts from `adapters/base.py`.
+
+#### Base (`adapters/`)
+
+| File | Lines | Purpose |
+|------|------:|---------|
+| `adapters/base.py` | ~260 | Abstract base classes: `BaseReader.read_node()`, `BaseWriter.write_node()` |
+
+#### Figma (`adapters/figma/`)
+
+| File | Lines | Purpose |
+|------|------:|---------|
+| `adapters/figma/__init__.py` | ~30 | Public exports: `FigmaReader`, `FigmaWriter`, `FigmaClient` |
+| `adapters/figma/reader.py` | ~800 | Figma REST API → UNNode (READ) |
+| `adapters/figma/writer.py` | ~1,100 | UNNode → Figma Plugin API JavaScript (WRITE) |
+| `adapters/figma/client.py` | ~500 | Figma REST API client (authentication, file fetch, image export) |
+| `adapters/figma/bridge_server.py` | ~800 | HTTP → WebSocket proxy server for HTTP mode |
+| `adapters/figma/http_bridge.py` | ~400 | HTTP client for bridge server (`FigmaBridgeClient`) |
+| `adapters/figma/talk_to_figma_client.py` | ~180 | Alternative WebSocket client for claude-talk-to-figma MCP |
+
+**Figma Writer Modes (in `writer.py`):**
+- `mode="script"` — Generates `.js` IIFE file for manual paste
+- `mode="bridge"` — WebSocket server on port 9224, plugin connects as client
+- `mode="http"` — HTTP POST to bridge server on port 9223
+
+#### Paper (`adapters/paper/`)
+
+| File | Lines | Purpose |
+|------|------:|---------|
+| `adapters/paper/__init__.py` | ~20 | Public exports: `PaperReader`, `PaperWriter`, `PaperClient` |
+| `adapters/paper/reader.py` | ~1,700 | Paper MCP → UNNode (READ) |
+| `adapters/paper/writer.py` | ~1,000 | UNNode → Paper MCP (WRITE) |
+| `adapters/paper/client.py` | ~750 | Paper MCP JSON-RPC client (HTTP SSE on port 29979) |
+
+#### Pencil (`adapters/pencil/`)
+
+| File | Lines | Purpose |
+|------|------:|---------|
+| `adapters/pencil/__init__.py` | ~15 | Public exports: `PencilReader`, `PencilWriter`, `PencilClient` |
+| `adapters/pencil/reader.py` | ~1,100 | Pencil MCP → UNNode (READ, partial) |
+| `adapters/pencil/writer.py` | ~850 | UNNode → Pencil MCP (WRITE, partial) |
+| `adapters/pencil/client.py` | ~1,200 | Pencil MCP HTTP client (ports 19000–19009) |
+| `adapters/pencil/ops.py` | ~450 | Operation definitions for Pencil protocol |
+
+### 9.4 Utilities (`utils/`)
+
+| File | Lines | Purpose |
+|------|------:|---------|
+| `utils/__init__.py` | ~70 | Public exports |
+| `utils/color.py` | ~700 | Color parsing: hex, RGB, HSL, blend modes |
+| `utils/css.py` | ~1,500 | CSS property serialization from UNNode |
+| `utils/svg.py` | ~500 | SVG path parsing and generation |
+| `utils/jsx_parser.py` | ~800 | JSX → UNNode parser for design import |
+| `utils/tokens.py` | ~300 | DTCG Design Tokens export (W3C format) |
+
+### 9.5 Documentation (`docs/`)
+
+| File | Lines | Purpose |
+|------|------:|---------|
+| `docs/ARCHITECTURE_OVERVIEW.md` | — | This file: architecture, modes, workflows |
+| `docs/UNNODE_DEEP_DIVE.md` | ~950 | UNNode IR technical reference |
+| `docs/UNNODE_DEEP_DIVE.html` | — | Standalone HTML version of IR reference |
+| `docs/ANALYSIS_REPORT.md` | ~400 | Competitive analysis: Octopus, figma-exporter, etc. |
+| `docs/UNIVERSAL_PLUG.md` | ~220 | Universal plug-in concept design |
+| `docs/UNIVERSAL_PLUG_PLAN.md` | ~310 | Implementation plan for universal plug-in |
+
+### 9.6 Tests (`tests/`)
+
+| File | Purpose |
+|------|---------|
+| `tests/conftest.py` | Pytest fixtures (mock clients, sample UNNodes) |
+| `tests/test_ir_nodes.py` | UNNode dataclass tests, serialization |
+| `tests/test_figma_reader.py` | Figma REST → UNNode parsing |
+| `tests/test_figma_writer.py` | UNNode → Figma JS code generation |
+| `tests/test_paper_reader.py` | Paper MCP → UNNode parsing |
+| `tests/test_paper_client.py` | Paper MCP client protocol tests |
+| `tests/test_bridge_server.py` | HTTP bridge server tests |
+| `tests/test_tokens.py` | DTCG token export tests |
+| `tests/test_e2e.py` | End-to-end conversion pipelines |
+
+### 9.7 Quick Navigation by Task
+
+| Task | Start Here |
+|------|------------|
+| **Add new node type** | `ir/nodes.py` → `adapters/figma/reader.py` → `adapters/figma/writer.py` |
+| **Add new adapter** | `adapters/base.py` → create `adapters/<tool>/` |
+| **Fix Figma read** | `adapters/figma/reader.py` |
+| **Fix Figma write** | `adapters/figma/writer.py` (emitter) or `adapters/figma/bridge_server.py` (transport) |
+| **Add CSS export** | `utils/css.py` |
+| **Add token export** | `utils/tokens.py` |
+| **Debug IR structure** | `ir/nodes.py` + `docs/UNNODE_DEEP_DIVE.md` |
+| **Understand protocol** | `adapters/figma/client.py` (REST), `adapters/paper/client.py` (MCP) |
 
 ---
 
