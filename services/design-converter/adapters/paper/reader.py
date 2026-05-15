@@ -812,6 +812,25 @@ _WEIGHT_ALIASES = {
 # Heading tag → default font size
 _HEADING_SIZES = {"h1": 32, "h2": 28, "h3": 24, "h4": 20, "h5": 18, "h6": 16}
 
+_FONT_FAMILY_MAP = {
+    "sans-serif": "Inter",
+    "system-ui": "Inter",
+    "System Sans-Serif": "Inter",
+    "-apple-system": "Inter",
+    "BlinkMacSystemFont": "Inter",
+    "Segoe UI": "Inter",
+    "Helvetica": "Inter",
+    "Arial": "Inter",
+    "serif": "Georgia",
+    "monospace": "JetBrains Mono",
+    "ui-monospace": "JetBrains Mono",
+}
+
+
+def _normalize_font_family(family: str) -> str:
+    stripped = family.strip().strip("'\"")
+    return _FONT_FAMILY_MAP.get(stripped, stripped)
+
 
 def _px(val: str, default: float = 0.0) -> float:
     """Parse a CSS pixel string like '16px' or '1.5rem' → float."""
@@ -848,6 +867,31 @@ def _collect_text(elem: _Element) -> str:
 def _is_text_only(elem: _Element) -> bool:
     """Return True if all children are strings (no nested elements)."""
     return all(isinstance(c, str) for c in elem.children)
+
+
+def _derive_name(elem: _Element, tag: str, node_type: str = "frame") -> str:
+    """Derive a meaningful name from element context."""
+    for prop in ("id", "data-name", "data-testid", "aria-label"):
+        val = elem.props.get(prop)
+        if val and isinstance(val, str) and val != tag:
+            return val
+
+    if node_type == "text":
+        text = _collect_text(elem)
+        if text:
+            return text[:40]
+
+    # Skip className — Paper's Tailwind classes produce misleading names
+
+    for child in elem.children:
+        if isinstance(child, str) and child.strip():
+            return child.strip()[:30]
+        if isinstance(child, _Element):
+            text = _collect_text(child)
+            if text:
+                return text[:30]
+
+    return tag
 
 
 # ---------------------------------------------------------------------------
@@ -1147,13 +1191,13 @@ def _parse_tailwind_class(cls: str) -> Dict[str, str]:
 
     # Font family
     if cls == "font-sans":
-        css["fontFamily"] = "sans-serif"
+        css["fontFamily"] = "Inter"
         return css
     if cls == "font-serif":
-        css["fontFamily"] = "serif"
+        css["fontFamily"] = "Georgia"
         return css
     if cls == "font-mono":
-        css["fontFamily"] = "monospace"
+        css["fontFamily"] = "JetBrains Mono"
         return css
 
     # Border radius: rounded, rounded-lg, rounded-3xl, rounded-[8px]
@@ -1473,7 +1517,7 @@ def _extract_opacity(css: Dict[str, str]) -> float:
 def _extract_layout(css: Dict[str, str], node: UNNode) -> None:
     """Parse flexbox CSS properties and set layout on node."""
     display = css.get("display", "").lower()
-    flex_dir = css.get("flexDirection", "column").lower()
+    flex_dir = css.get("flexDirection", "row").lower()
 
     if display != "flex":
         node.layout = LayoutMode.NONE
@@ -1507,7 +1551,9 @@ def _extract_text_style(css: Dict[str, str], tag: str) -> UNTextStyle:
     font_size = _px(css.get("fontSize"), _HEADING_SIZES.get(tag, 14.0))
     raw_weight = css.get("fontWeight", "400")
     font_weight = _WEIGHT_ALIASES.get(str(raw_weight).lower(), str(raw_weight))
-    font_family = css.get("fontFamily", "Inter").split(",")[0].strip().strip("'\"")
+    font_family = _normalize_font_family(
+        css.get("fontFamily", "Inter").split(",")[0].strip().strip("'\"")
+    )
     font_style = "italic" if "italic" in css.get("fontStyle", "").lower() else "normal"
 
     line_height_raw = css.get("lineHeight")
@@ -1651,7 +1697,7 @@ def _element_to_node(
             node = UNNode(
                 type=NodeType.TEXT,
                 id=_next_node_id(),
-                name=elem.props.get("id", elem.props.get("data-name", tag)),
+                name=_derive_name(elem, tag, "text"),
                 x=x,
                 y=y,
                 width=text_width,
@@ -1682,7 +1728,7 @@ def _element_to_node(
         node = UNNode(
             type=NodeType.FRAME,
             id=_next_node_id(),
-            name=elem.props.get("alt", elem.props.get("id", "image")),
+            name=elem.props.get("alt") or _derive_name(elem, tag),
             x=x,
             y=y,
             width=UNSize.fixed(max(width, 1.0)),
@@ -1714,7 +1760,7 @@ def _element_to_node(
         node = UNNode(
             type=NodeType.ELLIPSE,
             id=_next_node_id(),
-            name=elem.props.get("id", "ellipse"),
+            name=_derive_name(elem, tag),
             x=cx - r,
             y=cy - r,
             width=UNSize.fixed(w),
@@ -1733,7 +1779,7 @@ def _element_to_node(
         node = UNNode(
             type=NodeType.RECTANGLE,
             id=_next_node_id(),
-            name=elem.props.get("id", "rect"),
+            name=_derive_name(elem, tag),
             x=x,
             y=y,
             width=UNSize.fixed(max(width, 1.0)),
@@ -1758,7 +1804,7 @@ def _element_to_node(
         node = UNNode(
             type=NodeType.PATH,
             id=_next_node_id(),
-            name=elem.props.get("id", "path"),
+            name=_derive_name(elem, tag),
             x=x,
             y=y,
             width=UNSize.fixed(max(width, 1.0)),
@@ -1810,7 +1856,7 @@ def _element_to_node(
                 node = UNNode(
                     type=NodeType.PATH,
                     id=_next_node_id(),
-                    name=elem.props.get("id", "svg"),
+                    name=_derive_name(elem, tag),
                     x=x,
                     y=y,
                     width=UNSize.fixed(max(width, 24.0)),
@@ -1834,7 +1880,7 @@ def _element_to_node(
         node = UNNode(
             type=NodeType.FRAME,
             id=_next_node_id(),
-            name=elem.props.get("id", "svg"),
+            name=_derive_name(elem, tag),
             x=x,
             y=y,
             width=UNSize.fixed(max(width, 24.0)),
@@ -1860,7 +1906,7 @@ def _element_to_node(
     node = UNNode(
         type=NodeType.FRAME,
         id=_next_node_id(),
-        name=elem.props.get("id", elem.props.get("data-name", tag)),
+        name=_derive_name(elem, tag),
         x=x,
         y=y,
         width=_make_unsize(width, width_is_fill, width_is_hug),
@@ -1893,7 +1939,7 @@ def _element_to_node(
                 text_node = UNNode(
                     type=NodeType.TEXT,
                     id=_next_node_id(),
-                    name="text",
+                    name=text[:30],
                     text_content=text,
                     text_style=_extract_text_style(css, tag),
                     source_tool="paper",
@@ -1918,6 +1964,32 @@ def _element_to_node(
             )
             if child_node:
                 node.children.append(child_node)
+
+    return node
+
+
+def _flatten_trivial_wrappers(node: UNNode) -> UNNode:
+    """Remove frames that have exactly one child and add no visual properties."""
+    node.children = [_flatten_trivial_wrappers(c) for c in (node.children or [])]
+
+    if (
+        node.type == NodeType.FRAME
+        and len(node.children) == 1
+        and not node.fills
+        and not node.strokes
+        and not node.effects
+        and node.layout == LayoutMode.NONE
+        and (not node.padding or node.padding.is_zero())
+        and (not node.corner_radius or (node.corner_radius.is_uniform() and node.corner_radius.tl == 0))
+        and node.opacity == 1.0
+        and not node.clip_content
+    ):
+        child = node.children[0]
+        child.x += node.x
+        child.y += node.y
+        if not child.name or child.name in ("div", "section", "main", "article"):
+            child.name = node.name
+        return child
 
     return node
 
@@ -2022,6 +2094,8 @@ class PaperReader(BaseReader):
             raise ValueError(
                 f"Element-to-node conversion returned None for Paper node '{node_id}'."
             )
+
+        node = _flatten_trivial_wrappers(node)
 
         # Stamp source info
         node.source_id = node_id

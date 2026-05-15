@@ -95,6 +95,14 @@ def _rgba(c: "UNColor") -> str:
     return f"{{r:{r:.4f},g:{g:.4f},b:{b:.4f},a:{a:.4f}}}"
 
 
+def _rgb(c: "UNColor") -> str:
+    """Format a UNColor as {r,g,b} without alpha — use separate opacity field to avoid double-alpha."""
+    r = max(0.0, min(1.0, c.r))
+    g = max(0.0, min(1.0, c.g))
+    b = max(0.0, min(1.0, c.b))
+    return f"{{r:{r:.4f},g:{g:.4f},b:{b:.4f}}}"
+
+
 def _js_bool(v: bool) -> str:
     return "true" if v else "false"
 
@@ -259,6 +267,7 @@ class _FigmaCodeEmitter:
         self._lines.append(f"  {parent_var}.appendChild({var});")
         self._set_name(var, node)
         self._set_common(var, node)
+        self._emit_image_fills(var, node)
         self._set_layout(var, node)
         self._emit_children(node, var)
         return var
@@ -405,6 +414,7 @@ class _FigmaCodeEmitter:
         self._lines.append(f"  {parent_var}.appendChild({var});")
         self._set_name(var, node)
         self._set_common(var, node)
+        self._emit_image_fills(var, node)
         return var
 
     def _emit_ellipse(self, node: UNNode, parent_var: str) -> str:
@@ -537,16 +547,12 @@ class _FigmaCodeEmitter:
         else:
             h = 100.0  # Default fallback
 
-        # Only emit resize if BOTH dimensions are FIXED
-        # If one is FILL/HUG, Figma will handle sizing via layoutGrow/layoutAlign
         if w is not None and h is not None:
             self._lines.append(f"  {var}.resize({w},{h});")
         elif w is not None:
-            # Only width is FIXED - use resizeWithoutConstraints to set just width
-            self._lines.append(f"  {var}.resizeWithoutConstraints({w},1);")
+            self._lines.append(f"  {var}.resize({w},100);")
         elif h is not None:
-            # Only height is FIXED - use resizeWithoutConstraints to set just height
-            self._lines.append(f"  {var}.resizeWithoutConstraints(1,{h});")
+            self._lines.append(f"  {var}.resize(100,{h});")
         # If both are None (both FILL/HUG), skip resize entirely
 
     def _set_corner_radius(self, var: str, node: UNNode) -> None:
@@ -558,10 +564,10 @@ class _FigmaCodeEmitter:
             if v:
                 self._lines.append(f"  {var}.cornerRadius = {v};")
         else:
-            tl = cr.top_left or 0
-            tr = cr.top_right or 0
-            br = cr.bottom_right or 0
-            bl = cr.bottom_left or 0
+            tl = cr.tl or 0
+            tr = cr.tr or 0
+            br = cr.br or 0
+            bl = cr.bl or 0
             self._lines.append(
                 f"  {var}.topLeftRadius = {tl}; {var}.topRightRadius = {tr};"
                 f" {var}.bottomRightRadius = {br}; {var}.bottomLeftRadius = {bl};"
@@ -580,7 +586,7 @@ class _FigmaCodeEmitter:
         for s in node.strokes:
             if isinstance(s.fill, UNSolidFill):
                 paints.append(
-                    f"{{type:'SOLID',color:{_rgba(s.fill.color)},"
+                    f"{{type:'SOLID',color:{_rgb(s.fill.color)},"
                     f"opacity:{s.fill.color.a:.4f}}}"
                 )
             else:
@@ -734,23 +740,30 @@ class _FigmaCodeEmitter:
         if counter_mode == SizingMode.HUG:
             self._lines.append(f'  {var}.counterAxisSizingMode = "AUTO";')
 
-        # FILL mode handling:
-        # - layoutGrow = 1 → expands along parent's primary axis
-        # - layoutAlign = "STRETCH" → expands along parent's counter axis
-        # We set BOTH when either dimension is FILL because:
-        # - If we're FILL in primary axis: layoutGrow = 1
-        # - If we're FILL in counter axis: layoutAlign = "STRETCH"
-        if primary_mode == SizingMode.FILL:
-            self._lines.append(f"  {var}.layoutGrow = 1;")
-        if counter_mode == SizingMode.FILL:
-            self._lines.append(f'  {var}.layoutAlign = "STRETCH";')
-
         if node.layout_wrap:
             self._lines.append(f'  {var}.layoutWrap = "WRAP";')
 
     def _emit_children(self, node: UNNode, parent_var: str) -> None:
+        is_auto_layout = node.layout and node.layout != LayoutMode.NONE
         for child in (node.children or []):
-            self._emit_node(child, parent_var)
+            child_var = self._emit_node(child, parent_var)
+            if is_auto_layout:
+                self._set_child_sizing(child_var, child, node)
+
+    def _set_child_sizing(self, child_var: str, child: UNNode, parent: UNNode) -> None:
+        """Set layoutGrow/layoutAlign on a child based on its sizing modes and parent direction."""
+        w_mode = child.width.mode if child.width else SizingMode.FIXED
+        h_mode = child.height.mode if child.height else SizingMode.FIXED
+        if parent.layout == LayoutMode.HORIZONTAL:
+            if w_mode == SizingMode.FILL:
+                self._lines.append(f"  {child_var}.layoutGrow = 1;")
+            if h_mode == SizingMode.FILL:
+                self._lines.append(f'  {child_var}.layoutAlign = "STRETCH";')
+        elif parent.layout == LayoutMode.VERTICAL:
+            if h_mode == SizingMode.FILL:
+                self._lines.append(f"  {child_var}.layoutGrow = 1;")
+            if w_mode == SizingMode.FILL:
+                self._lines.append(f'  {child_var}.layoutAlign = "STRETCH";')
 
     # ------------------------------------------------------------------
     # rich text runs
@@ -835,18 +848,14 @@ class _FigmaCodeEmitter:
         for fill in fills:
             if isinstance(fill, UNSolidFill):
                 parts.append(
-                    f"{{type:'SOLID',color:{_rgba(fill.color)},"
+                    f"{{type:'SOLID',color:{_rgb(fill.color)},"
                     f"opacity:{fill.color.a:.4f},"
                     f"visible:{_js_bool(fill.enabled)}}}"
                 )
             elif isinstance(fill, UNGradientFill):
                 parts.append(self._render_gradient(fill))
             elif isinstance(fill, UNImageFill):
-                # Image fills need the image bytes — emit a placeholder comment.
-                parts.append(
-                    "{type:'SOLID',color:{r:0.8,g:0.8,b:0.8,a:1},opacity:1,"
-                    "visible:true/*IMAGE_FILL:replace_with_image_paint*/}"
-                )
+                pass  # handled by _emit_image_fills
         return "[" + ",".join(parts) + "]"
 
     def _render_gradient(self, fill: UNGradientFill) -> str:
@@ -870,6 +879,26 @@ class _FigmaCodeEmitter:
             f"gradientTransform:{transform},"
             f"visible:{_js_bool(fill.enabled)}}}"
         )
+
+    def _emit_image_fills(self, var: str, node: UNNode) -> None:
+        """Emit async fetch + image fill code for the first UNImageFill with a URL."""
+        for fill in (node.fills or []):
+            if isinstance(fill, UNImageFill) and fill.url:
+                url = json.dumps(fill.url)
+                mode_map = {
+                    ImageFillMode.FILL: "FILL",
+                    ImageFillMode.FIT: "FIT",
+                    ImageFillMode.STRETCH: "STRETCH",
+                    ImageFillMode.TILE: "TILE",
+                }
+                scale_mode = mode_map.get(fill.mode, "FILL")
+                self._lines.append(f"  try {{")
+                self._lines.append(f"    const _imgResp = await fetch({url});")
+                self._lines.append(f"    const _imgBuf = await _imgResp.arrayBuffer();")
+                self._lines.append(f"    const _img = figma.createImage(new Uint8Array(_imgBuf));")
+                self._lines.append(f"    {var}.fills = [{{type:'IMAGE',scaleMode:'{scale_mode}',imageHash:_img.hash}}];")
+                self._lines.append(f"  }} catch(_e) {{ console.warn('Image load failed for {var}:', _e); }}")
+                break  # only first image fill
 
 
 # ---------------------------------------------------------------------------

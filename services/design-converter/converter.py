@@ -432,7 +432,7 @@ class DesignConverter:
 
     def _make_reader(self, spec: ConvertSpec) -> BaseReader:
         if spec.tool == "figma":
-            return FigmaReader(token=self._figma_token)
+            return FigmaReader(token=self._figma_token, file_key=spec.file_key)
         if spec.tool == "paper":
             return PaperReader()
         if spec.tool == "pencil":
