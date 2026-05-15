@@ -48,6 +48,7 @@ credentials.json
 # Generated files
 *.generated.*
 Paper_*.js
+output-v2/
 
 # Logs
 *.log
