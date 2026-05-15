@@ -299,12 +299,16 @@ class FigmaBridgeServer:
             # Read HTTP request headers
             headers_raw = b""
             while b"\r\n\r\n" not in headers_raw:
-                chunk = await reader.read(1024)
+                chunk = await reader.read(4096)
                 if not chunk:
                     return
                 headers_raw += chunk
 
-            headers_text = headers_raw.decode("utf-8", errors="replace")
+            # Split headers from any body bytes read during header parsing
+            header_end = headers_raw.index(b"\r\n\r\n") + 4
+            body_prefix = headers_raw[header_end:]
+            headers_text = headers_raw[:header_end].decode("utf-8", errors="replace")
+
             lines = headers_text.split("\r\n")
             request_line = lines[0]
             method, path, _ = request_line.split(" ", 2)
@@ -323,7 +327,7 @@ class FigmaBridgeServer:
                 return
 
             # Regular HTTP request
-            await self._handle_http(reader, writer, method, path, headers)
+            await self._handle_http(reader, writer, method, path, headers, body_prefix)
 
         except Exception as e:
             log.error(f"Connection error: {e}")
@@ -539,13 +543,19 @@ class FigmaBridgeServer:
         method: str,
         path: str,
         headers: Dict[str, str],
+        body_prefix: bytes = b"",
     ) -> None:
         """Handle HTTP request."""
-        # Read body if present
-        body = b""
+        # Read body if present, accounting for bytes already read during header parsing
+        body = body_prefix
         content_length = int(headers.get("content-length", 0))
-        if content_length > 0:
-            body = await reader.read(content_length)
+        remaining = content_length - len(body)
+        while remaining > 0:
+            chunk = await reader.read(min(remaining, 65536))
+            if not chunk:
+                break
+            body += chunk
+            remaining -= len(chunk)
 
         # Route
         if path == "/health":
