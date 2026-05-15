@@ -1,70 +1,68 @@
-# paper-figma
+# Design Converter
 
-Bidirectional converter between [Paper Design](https://paper.design) and Figma.
+Tools for moving designs between Paper Design and Figma.
 
-Reads Paper's design tree via MCP, generates Figma Plugin API JavaScript, and pushes to Figma via a persistent WebSocket bridge.
+The repository currently has two paths:
+
+1. **Legacy direct Paper → Figma path** — `paper_to_figma.py` plus `ptf/`.
+   This is the quickest working path for converting Paper artboards into Figma Plugin API JavaScript.
+2. **Canonical IR path** — `design_converter/`.
+   This is the longer-term architecture: adapters read/write a shared `UNNode` design tree.
 
 ## Setup
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install requests
+.venv/bin/pip install -r requirements-dev.txt
 ```
 
-## Usage
+## Run the Figma bridge
 
-### 1. Start the bridge server (once)
+Start the local HTTP/WebSocket bridge, then connect the Desktop Bridge plugin in Figma to port `9223`.
 
 ```bash
-.venv/bin/python3 services/design-converter/adapters/figma/bridge_server.py --port 9223
+.venv/bin/python3 -m design_converter.adapters.figma.bridge_server --port 9223
 ```
 
-Then connect the Desktop Bridge plugin in Figma to port 9223. The server stays running — no reconnection needed between runs.
-
-### 2. Convert artboards
+## Convert Paper artboards with the legacy direct path
 
 ```bash
-# Convert a specific artboard
+# Convert a specific artboard and push it through the bridge
 .venv/bin/python3 paper_to_figma.py --artboard 1J3-0
 
 # Convert all artboards
 .venv/bin/python3 paper_to_figma.py
 
-# Dry run (output JS without pushing)
+# Dry run: generate JS without pushing to Figma
 .venv/bin/python3 paper_to_figma.py --artboard 1J3-0 --dry-run --output /tmp/hero.js
 ```
 
-## Architecture
+## Repository map
 
+| Path | Purpose |
+| --- | --- |
+| `design_converter/ir/` | `UNNode` intermediate representation and design primitives. |
+| `design_converter/adapters/` | Tool adapters at the read/write seam. Currently Figma and Paper. |
+| `design_converter/utils/` | Shared parsing helpers for CSS, JSX, SVG, colors, and tokens. |
+| `paper_to_figma.py` | Working legacy Paper → Figma CLI. |
+| `ptf/` | Legacy direct converter modules used by `paper_to_figma.py`. |
+| `tests/` | Unit and integration tests. |
+| `tools/` | Small operational helpers. |
+| `docs/` | Current architecture notes plus archived research/planning docs. |
+
+## Development checks
+
+```bash
+python3 -m compileall -q paper_to_figma.py ptf design_converter tests tools
+python3 -m pytest -q
 ```
-Paper MCP (localhost:29979)
-    ↓ get_children, get_computed_styles, get_screenshot
-ptf/ (Python)
-    ↓ TreeNode → Figma Plugin API JavaScript
-Bridge Server (HTTP POST /execute)
-    ↓ WebSocket
-Desktop Bridge Plugin → Figma
+
+If `pytest` is missing, install the dev dependencies first:
+
+```bash
+.venv/bin/pip install -r requirements-dev.txt
 ```
 
-### Modules
+## Architecture notes
 
-| Module | Purpose |
-|--------|---------|
-| `ptf/mcp_client.py` | Paper MCP HTTP client (SSE parsing) |
-| `ptf/tree.py` | TreeNode builder, style attachment, image fetching |
-| `ptf/parsers.py` | CSS value parsers, font/color mapping |
-| `ptf/codegen.py` | Figma Plugin API JS code generator |
-| `bridge_server.py` | Persistent HTTP+WebSocket bridge to Figma |
-
-### Features
-
-- Auto-layout mapping (CSS flex → Figma auto-layout)
-- Font family/weight mapping (Geist → Inter)
-- Background images embedded as base64
-- SVG nodes exported as raster images via Paper MCP
-- Box shadows, border radius, borders/strokes
-- Proper child sizing (stretch, grow, shrink)
-
-## IR Layer
-
-`services/design-converter/` contains an intermediate representation (UNNode) for bidirectional conversion. This is the foundation for future Figma→Paper support.
+Start with [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the current seams and naming. Historical/planning notes live in `docs/archive/` and may describe adapters or CLIs that do not exist yet.

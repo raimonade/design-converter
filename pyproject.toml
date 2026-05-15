@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "design-converter"
+version = "0.1.0"
+description = "Local tools for converting Paper Design and Figma design trees."
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.31",
+    "websockets>=12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+]
+
+[project.scripts]
+figma-bridge = "design_converter.adapters.figma.bridge_server:main"
+
+[tool.setuptools.packages.find]
+include = ["design_converter*", "ptf*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

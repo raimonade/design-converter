@@ -2,13 +2,13 @@
 
 ## What This Repo Is
 
-**paper-figma** — bidirectional converter between Paper Design and Figma. Reads Paper's design tree via MCP, generates Figma Plugin API JavaScript, pushes via a persistent WebSocket bridge.
+**Design Converter** — local tools for moving Paper Design trees into Figma. The legacy direct path reads Paper via MCP, generates Figma Plugin API JavaScript, and pushes through a persistent WebSocket bridge. The canonical path is `design_converter/` with `UNNode` as the shared seam.
 
 ## Development Commands
 
 ```bash
 # Start persistent bridge server (once, stays running)
-.venv/bin/python3 services/design-converter/adapters/figma/bridge_server.py --port 9223
+.venv/bin/python3 -m design_converter.adapters.figma.bridge_server --port 9223
 
 # Convert specific artboard
 .venv/bin/python3 paper_to_figma.py --artboard 1J3-0
@@ -29,7 +29,7 @@ ptf/                       # converter package
   tree.py                  # TreeNode, build_tree, attach_styles, fetch_images
   parsers.py               # CSS parsers, font/color mapping
   codegen.py               # FigmaCodeGen: TreeNode → Figma Plugin API JS
-services/design-converter/ # IR layer (UNNode) + adapters for bidirectional conversion
+design_converter/           # IR layer (UNNode) + adapters for canonical conversion
   adapters/figma/
     bridge_server.py       # persistent HTTP+WS bridge to Figma plugin
     writer.py              # UNNode → Figma JS (IR-based path)
@@ -54,7 +54,7 @@ services/design-converter/ # IR layer (UNNode) + adapters for bidirectional conv
 
 ## Key Conventions
 
-- Python, pure stdlib + requests
-- `ptf/` is the primary converter package (no dependency on `services/`)
-- `services/design-converter/` is the IR-based path for bidirectional work
+- Python with small HTTP/WebSocket dependencies (`requests`, `websockets`)
+- `ptf/` is the legacy direct converter package
+- `design_converter/` is the IR-based path for bidirectional work
 - Generated `.js` files go in `output-v2/` (gitignored)

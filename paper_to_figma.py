@@ -6,7 +6,7 @@ JavaScript, and pushes via the persistent bridge server (bridge_server.py).
 
 Usage:
     # First, start the bridge server (once):
-    .venv/bin/python3 services/design-converter/adapters/figma/bridge_server.py --port 9223
+    .venv/bin/python3 -m design_converter.adapters.figma.bridge_server --port 9223
     # Then connect Desktop Bridge plugin to port 9223.
 
     # Convert artboards (no reconnection needed):
@@ -162,7 +162,7 @@ def main() -> None:
     if not check_bridge(args.port):
         log.error(
             "Bridge server not available on port %d.\n"
-            "  Start it:  .venv/bin/python3 services/design-converter/adapters/figma/bridge_server.py --port %d\n"
+            "  Start it:  .venv/bin/python3 -m design_converter.adapters.figma.bridge_server --port %d\n"
             "  Then connect the Desktop Bridge plugin to port %d.",
             args.port, args.port, args.port,
         )
